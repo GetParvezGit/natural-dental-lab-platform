@@ -1,0 +1,64 @@
+@page "/approval-requests"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Owner,Admin,Staff")]
+
+@using System.Security.Claims
+@using DentalLab.Application.Abstractions
+@using DentalLab.Application.Models.Approvals
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject ICaseApprovalService ApprovalService
+
+<PageTitle>Approval Requests</PageTitle>
+
+<h3>Approval Requests</h3>
+
+@if (loading)
+{
+    <p>Loading...</p>
+}
+else if (items.Count == 0)
+{
+    <div class="alert alert-info">No approval requests found.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle">
+            <thead><tr><th>ID</th><th>Case</th><th>Type</th><th>Requested By</th><th>Assigned Admin</th><th>Requested</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var item in items)
+                {
+                    <tr>
+                        <td>#@item.RequestId</td><td>#@item.CaseId</td><td>@item.RequestType</td>
+                        <td>@item.RequestedByEmail</td><td>@item.AssignedAdminEmail</td>
+                        <td>@item.RequestedOn.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                        <td><span class="badge @StatusClass(item.Status)">@item.Status</span></td>
+                        <td><a class="btn btn-sm btn-outline-primary" href="@($"/approval-requests/{item.RequestId}")">View</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthenticationStateTask { get; set; } = default!;
+    private List<CaseApprovalListItem> items = [];
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthenticationStateTask;
+        var userId = state.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        items = await ApprovalService.GetForCurrentUserAsync(userId, state.User.IsInRole("Owner"));
+        loading = false;
+    }
+
+    private static string StatusClass(string status) => status switch
+    {
+        "Pending" => "text-bg-warning", "Approved" => "text-bg-primary", "Completed" => "text-bg-success",
+        "Rejected" => "text-bg-danger", _ => "text-bg-secondary"
+    };
+}

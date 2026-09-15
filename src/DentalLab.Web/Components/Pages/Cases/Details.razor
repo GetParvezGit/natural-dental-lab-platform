@@ -1,0 +1,55 @@
+@page "/cases/{CaseId:int}"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Owner,Admin,Staff")]
+@using DentalLab.Application.Abstractions
+@using DentalLab.Application.Models.Cases
+@using DentalLab.Web.Components.Shared
+@using Microsoft.AspNetCore.Authorization
+@inject ICaseService CaseService
+<PageTitle>Case @CaseId</PageTitle>
+@if (item is null)
+{
+    <p>Loading or case not found...</p>
+}
+else
+{
+    <div class="d-flex justify-content-between">
+        <h3>Case @item.CaseId</h3>
+        <div>
+            <a class="btn btn-outline-secondary" href="/cases">Back</a>
+            @if (!item.IsCancelled)
+            {
+                <AuthorizeView Roles="Owner,Admin">
+                    <Authorized>
+                        <a class="btn btn-outline-primary ms-2" href="@($"/cases/{CaseId}/edit")">Edit</a>
+                        <a class="btn btn-outline-danger ms-2" href="@($"/cases/{CaseId}/cancel")">Cancel</a>
+                    </Authorized>
+                </AuthorizeView>
+                <AuthorizeView Roles="Staff">
+                    <Authorized>
+                        <a class="btn btn-outline-primary ms-2" href="@($"/cases/{CaseId}/request-change/edit")">Request Edit</a>
+                        <a class="btn btn-outline-danger ms-2" href="@($"/cases/{CaseId}/request-change/cancel")">Request Cancellation</a>
+                    </Authorized>
+                </AuthorizeView>
+            }
+        </div>
+    </div>
+    @if (item.IsCancelled) { <div class="alert alert-secondary">Cancelled: @item.CancelReason</div> }
+    <div class="card mb-3"><div class="card-body row">
+        <div class="col"><b>Doctor</b><br />@item.DoctorName</div>
+        <div class="col"><b>Patient</b><br />@item.PatientName</div>
+        <div class="col"><b>Created</b><br />@item.CreatedBy<br />@item.CreatedAt.ToLocalTime()</div>
+        <div class="col"><b>Modified</b><br />@(item.ModifiedBy ?? "-")<br />@item.ModifiedAt?.ToLocalTime()</div>
+    </div></div>
+    <table class="table table-bordered"><thead><tr><th>#</th><th>Teeth</th><th>Type</th><th>Rate</th><th>Units</th><th>Amount</th></tr></thead><tbody>
+        @foreach (var l in item.Lines)
+        {
+            <tr><td>@l.LineNumber</td><td><CompactToothGrid Scope="@l.Scope" Arch="@l.Arch" UR="@l.UR" UL="@l.UL" LR="@l.LR" LL="@l.LL" /></td><td>@l.CaseTypeCode - @l.CaseTypeName</td><td>@l.UnitRate.ToString("N2")</td><td>@l.Units</td><td>@l.Amount.ToString("N2")</td></tr>
+        }
+    </tbody></table>
+}
+@code {
+    [Parameter] public int CaseId { get; set; }
+    private CaseDetails? item;
+    protected override async Task OnParametersSetAsync() => item = await CaseService.GetByIdAsync(CaseId);
+}

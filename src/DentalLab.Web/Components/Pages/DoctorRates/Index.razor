@@ -1,0 +1,191 @@
+﻿@page "/doctor-rates"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Owner,Admin")]
+
+@using DentalLab.Application.Abstractions
+@using DentalLab.Application.Models
+@using DentalLab.Domain.Entities
+@using Microsoft.AspNetCore.Authorization
+
+@inject IDoctorService DoctorService
+@inject ICaseTypeService CaseTypeService
+@inject IDoctorRateService DoctorRateService
+
+<PageTitle>Doctor Rates</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h3 class="mb-1">Doctor Rates</h3>
+        <p class="text-muted mb-0">
+            View and manage case-type pricing across all doctors.
+        </p>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Doctor</label>
+                <select class="form-select"
+                        value="@SelectedDoctorValue"
+                        @onchange="DoctorChanged">
+                    <option value="">All doctors</option>
+                    @foreach (var doctor in doctors)
+                    {
+                        <option value="@doctor.DocId">@doctor.DocName</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Case type</label>
+                <select class="form-select"
+                        value="@SelectedCaseTypeValue"
+                        @onchange="CaseTypeChanged">
+                    <option value="">All case types</option>
+                    @foreach (var caseType in caseTypes)
+                    {
+                        <option value="@caseType.CaseTypeId">
+                            @caseType.CaseTypeCode - @caseType.CaseTypeName
+                        </option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-4 d-flex align-items-end">
+                <div class="form-check mb-2">
+                    <input class="form-check-input"
+                           type="checkbox"
+                           id="showInactiveRates"
+                           checked="@includeInactive"
+                           @onchange="InactiveChanged" />
+                    <label class="form-check-label" for="showInactiveRates">
+                        Show inactive rates
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (isLoading)
+{
+    <p>Loading...</p>
+}
+else if (rates.Count == 0)
+{
+    <div class="alert alert-info">
+        No doctor rates were found for the selected filters.
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Doctor</th>
+                    <th>Code</th>
+                    <th>Case Type</th>
+                    <th>Scope</th>
+                    <th class="text-end">Cost</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var rate in rates)
+                {
+                    <tr class="@(rate.IsActive ? string.Empty : "text-muted")">
+                        <td>@rate.DocName</td>
+                        <td><code>@rate.CaseTypeCode</code></td>
+                        <td>@rate.CaseTypeName</td>
+                        <td>
+                            <span class="badge bg-light text-dark">
+                                @(rate.Scope == 'A' ? "Whole arch" : "Per tooth")
+                            </span>
+                        </td>
+                        <td class="text-end">@rate.Cost.ToString("N2")</td>
+                        <td>
+                            <span class="badge bg-@(rate.IsActive ? "success" : "secondary")">
+                                @(rate.IsActive ? "Active" : "Inactive")
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-primary"
+                               href="@($"/doctors/{rate.DocId}/rates")">
+                                Manage
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<Doctor> doctors = new();
+    private List<CaseType> caseTypes = new();
+    private List<DoctorRateListItem> rates = new();
+
+    private int? selectedDoctorId;
+    private int? selectedCaseTypeId;
+    private bool includeInactive;
+    private bool isLoading = true;
+
+    private string SelectedDoctorValue =>
+        selectedDoctorId?.ToString() ?? string.Empty;
+
+    private string SelectedCaseTypeValue =>
+        selectedCaseTypeId?.ToString() ?? string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        doctors = await DoctorService.GetAllAsync();
+        caseTypes = await CaseTypeService.GetAllAsync();
+        await LoadRatesAsync();
+    }
+
+    private async Task LoadRatesAsync()
+    {
+        isLoading = true;
+
+        try
+        {
+            rates = await DoctorRateService.GetAllAsync(
+                selectedDoctorId,
+                selectedCaseTypeId,
+                includeInactive);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task DoctorChanged(ChangeEventArgs args)
+    {
+        selectedDoctorId = int.TryParse(args.Value?.ToString(), out var doctorId)
+            ? doctorId
+            : null;
+
+        await LoadRatesAsync();
+    }
+
+    private async Task CaseTypeChanged(ChangeEventArgs args)
+    {
+        selectedCaseTypeId = int.TryParse(args.Value?.ToString(), out var caseTypeId)
+            ? caseTypeId
+            : null;
+
+        await LoadRatesAsync();
+    }
+
+    private async Task InactiveChanged(ChangeEventArgs args)
+    {
+        includeInactive = args.Value is bool value && value;
+        await LoadRatesAsync();
+    }
+}
