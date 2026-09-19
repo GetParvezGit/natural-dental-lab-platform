@@ -12,41 +12,143 @@
 
 <PageTitle>Approval Requests</PageTitle>
 
-<h3>Approval Requests</h3>
+<div class="requests-page">
+    <section class="requests-hero">
+        <div>
+            <span class="eyebrow">Workflow management</span>
+            <h1>Approval Requests</h1>
+            <p>Review case edit and cancellation requests assigned to the current account.</p>
+        </div>
+        <div class="hero-summary">
+            <strong>@FilteredItems.Count</strong>
+            <span>Requests</span>
+        </div>
+    </section>
 
-@if (loading)
-{
-    <p>Loading...</p>
-}
-else if (items.Count == 0)
-{
-    <div class="alert alert-info">No approval requests found.</div>
-}
-else
-{
-    <div class="table-responsive">
-        <table class="table table-sm table-hover align-middle">
-            <thead><tr><th>ID</th><th>Case</th><th>Type</th><th>Requested By</th><th>Assigned Admin</th><th>Requested</th><th>Status</th><th></th></tr></thead>
-            <tbody>
-                @foreach (var item in items)
-                {
-                    <tr>
-                        <td>#@item.RequestId</td><td>#@item.CaseId</td><td>@item.RequestType</td>
-                        <td>@item.RequestedByEmail</td><td>@item.AssignedAdminEmail</td>
-                        <td>@item.RequestedOn.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                        <td><span class="badge @StatusClass(item.Status)">@item.Status</span></td>
-                        <td><a class="btn btn-sm btn-outline-primary" href="@($"/approval-requests/{item.RequestId}")">View</a></td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-}
+    <section class="requests-toolbar">
+        <div class="toolbar-copy">
+            <strong>Request directory</strong>
+            <span>Search, filter, and open workflow requests</span>
+        </div>
+        <div class="toolbar-controls">
+            <input class="form-control form-control-sm search-input"
+                   placeholder="Search request, case, type, or email"
+                   @bind="searchText"
+                   @bind:event="oninput" />
+            <select class="form-select form-select-sm status-filter" @bind="statusFilter">
+                <option value="All">All statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="Approved">Approved</option>
+                <option value="Completed">Completed</option>
+                <option value="Rejected">Rejected</option>
+            </select>
+        </div>
+    </section>
+
+    @if (loading)
+    {
+        <div class="directory-state">
+            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+            <span>Loading approval requests...</span>
+        </div>
+    }
+    else if (PagedItems.Count == 0)
+    {
+        <div class="alert alert-info">No approval requests match the current filters.</div>
+    }
+    else
+    {
+        <section class="requests-table-card">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0 requests-table">
+                    <thead>
+                        <tr>
+                            <th><button type="button" class="sort-header" @onclick="() => SortBy(SortColumn.Id)">ID <span>@SortIndicator(SortColumn.Id)</span></button></th>
+                            <th><button type="button" class="sort-header" @onclick="() => SortBy(SortColumn.Case)">Case <span>@SortIndicator(SortColumn.Case)</span></button></th>
+                            <th><button type="button" class="sort-header" @onclick="() => SortBy(SortColumn.Type)">Type <span>@SortIndicator(SortColumn.Type)</span></button></th>
+                            <th>Requested By</th>
+                            <th>Assigned Admin</th>
+                            <th><button type="button" class="sort-header" @onclick="() => SortBy(SortColumn.Requested)">Requested <span>@SortIndicator(SortColumn.Requested)</span></button></th>
+                            <th><button type="button" class="sort-header" @onclick="() => SortBy(SortColumn.Status)">Status <span>@SortIndicator(SortColumn.Status)</span></button></th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var index = 0; index < PagedItems.Count; index++)
+                        {
+                            var item = PagedItems[index];
+                            <tr class="@(index % 2 == 0 ? "row-light" : "row-shaded")">
+                                <td class="request-id">#@item.RequestId</td>
+                                <td class="case-id">#@item.CaseId</td>
+                                <td><span class="type-badge">@item.RequestType</span></td>
+                                <td title="@item.RequestedByEmail">@item.RequestedByEmail</td>
+                                <td title="@item.AssignedAdminEmail">@item.AssignedAdminEmail</td>
+                                <td class="requested-cell">@item.RequestedOn.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td><span class="status-badge @StatusClass(item.Status)">@item.Status</span></td>
+                                <td><a class="btn btn-sm btn-outline-primary view-button" href="@($"/approval-requests/{item.RequestId}")">View</a></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination-bar">
+                <span>Page @PageNumber of @TotalPages <span class="text-muted">(@FilteredItems.Count total)</span></span>
+                <div class="pagination-controls">
+                    <label for="requestPageSize">Rows</label>
+                    <select id="requestPageSize" class="form-select form-select-sm page-size" value="@pageSize" @onchange="PageSizeChanged">
+                        <option value="10">10</option><option value="20">20</option><option value="50">50</option>
+                    </select>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled="@(PageNumber <= 1)" @onclick="PreviousPage">Previous</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled="@(PageNumber >= TotalPages)" @onclick="NextPage">Next</button>
+                </div>
+            </div>
+        </section>
+    }
+</div>
 
 @code {
     [CascadingParameter] private Task<AuthenticationState> AuthenticationStateTask { get; set; } = default!;
     private List<CaseApprovalListItem> items = [];
     private bool loading = true;
+    private string searchText = string.Empty;
+    private string statusFilter = "All";
+    private SortColumn sortColumn = SortColumn.Requested;
+    private bool sortDescending = true;
+    private int pageNumber = 1;
+    private int pageSize = 10;
+
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(FilteredItems.Count / (double)pageSize));
+    private int PageNumber { get => Math.Min(pageNumber, TotalPages); set => pageNumber = Math.Clamp(value, 1, TotalPages); }
+
+    private List<CaseApprovalListItem> FilteredItems
+    {
+        get
+        {
+            IEnumerable<CaseApprovalListItem> query = items;
+            if (!string.Equals(statusFilter, "All", StringComparison.OrdinalIgnoreCase)) query = query.Where(x => x.Status == statusFilter);
+            if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                var term = searchText.Trim();
+                query = query.Where(x => x.RequestId.ToString().Contains(term, StringComparison.OrdinalIgnoreCase) || x.CaseId.ToString().Contains(term, StringComparison.OrdinalIgnoreCase) || x.RequestType.Contains(term, StringComparison.OrdinalIgnoreCase) || x.RequestedByEmail.Contains(term, StringComparison.OrdinalIgnoreCase) || x.AssignedAdminEmail.Contains(term, StringComparison.OrdinalIgnoreCase));
+            }
+            query = (sortColumn, sortDescending) switch
+            {
+                (SortColumn.Id, false) => query.OrderBy(x => x.RequestId),
+                (SortColumn.Id, true) => query.OrderByDescending(x => x.RequestId),
+                (SortColumn.Case, false) => query.OrderBy(x => x.CaseId),
+                (SortColumn.Case, true) => query.OrderByDescending(x => x.CaseId),
+                (SortColumn.Type, false) => query.OrderBy(x => x.RequestType),
+                (SortColumn.Type, true) => query.OrderByDescending(x => x.RequestType),
+                (SortColumn.Requested, false) => query.OrderBy(x => x.RequestedOn),
+                (SortColumn.Requested, true) => query.OrderByDescending(x => x.RequestedOn),
+                (SortColumn.Status, false) => query.OrderBy(x => x.Status),
+                _ => query.OrderByDescending(x => x.Status)
+            };
+            return query.ToList();
+        }
+    }
+
+    private List<CaseApprovalListItem> PagedItems => FilteredItems.Skip((PageNumber - 1) * pageSize).Take(pageSize).ToList();
 
     protected override async Task OnInitializedAsync()
     {
@@ -56,9 +158,11 @@ else
         loading = false;
     }
 
-    private static string StatusClass(string status) => status switch
-    {
-        "Pending" => "text-bg-warning", "Approved" => "text-bg-primary", "Completed" => "text-bg-success",
-        "Rejected" => "text-bg-danger", _ => "text-bg-secondary"
-    };
+    private void SortBy(SortColumn column) { if (sortColumn == column) sortDescending = !sortDescending; else { sortColumn = column; sortDescending = false; } pageNumber = 1; }
+    private string SortIndicator(SortColumn column) => sortColumn != column ? "↕" : sortDescending ? "↓" : "↑";
+    private void PreviousPage() => PageNumber--;
+    private void NextPage() => PageNumber++;
+    private void PageSizeChanged(ChangeEventArgs e) { if (int.TryParse(e.Value?.ToString(), out var value)) pageSize = value; pageNumber = 1; }
+    private static string StatusClass(string status) => status switch { "Pending" => "status-pending", "Approved" => "status-approved", "Completed" => "status-completed", "Rejected" => "status-rejected", _ => "status-neutral" };
+    private enum SortColumn { Id, Case, Type, Requested, Status }
 }

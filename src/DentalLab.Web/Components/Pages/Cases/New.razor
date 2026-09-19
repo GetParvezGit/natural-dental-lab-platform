@@ -22,7 +22,7 @@
         <h3 class="mb-1">New Case</h3>
         <p class="text-muted mb-0">Select a doctor, add one or more case lines, then save.</p>
     </div>
-    <a class="btn btn-outline-secondary" href="/cases">View cases</a>
+    <a class="btn btn-outline-secondary" href="/cases">View Cases</a>
 </div>
 
 <EditForm Model="model" OnValidSubmit="SaveCaseAsync" FormName="caseEntryForm">
@@ -52,7 +52,7 @@
                 </div>
 
                 <div class="col-lg-3">
-                    <label class="form-label">Case date</label>
+                    <label class="form-label">Case Date</label>
                     <InputDate class="form-control"
                                @bind-Value="model.CaseDate"
                                max="@TodayText" />
@@ -60,13 +60,13 @@
                 </div>
 
                 <div class="col-lg-3">
-                    <label class="form-label">Patient name</label>
+                    <label class="form-label">Patient Name</label>
                     <InputText class="form-control" @bind-Value="model.PatientName" />
                     <ValidationMessage For="() => model.PatientName" />
                 </div>
 
                 <div class="col-lg-2">
-                    <label class="form-label">Patient reference</label>
+                    <label class="form-label">Patient Reference</label>
                     <InputText class="form-control" @bind-Value="model.PatientRef" />
                     <ValidationMessage For="() => model.PatientRef" />
                 </div>
@@ -77,7 +77,7 @@
     <div class="row g-4">
         <div class="col-xl-8">
             <div class="card">
-                <div class="card-header">Add case line</div>
+                <div class="card-header">Add Case Line</div>
                 <div class="card-body">
                     @if (model.DocId == 0)
                     {
@@ -112,7 +112,7 @@
                             </div>
 
                             <div class="col-md-4">
-                                <label class="form-label">Unit rate</label>
+                                <label class="form-label">Unit Rate</label>
                                 <div class="form-control bg-light">
                                     @(selectedRate is null ? "-" : selectedRate.Cost.ToString("N2"))
                                 </div>
@@ -245,7 +245,7 @@
                                 <button type="button"
                                         class="btn btn-primary"
                                         @onclick="AddLine">
-                                    Add line
+                                    Add Line
                                 </button>
                             </div>
                         }
@@ -262,7 +262,7 @@
         <div class="col-xl-4">
             <div class="card">
                 <div class="card-header d-flex justify-content-between">
-                    <span>Added lines</span>
+                    <span>Added Lines</span>
                     <span class="badge bg-secondary">@model.Lines.Count</span>
                 </div>
 
@@ -326,9 +326,9 @@
                 <button type="submit"
                         class="btn btn-success"
                         disabled="@(saving || model.Lines.Count == 0)">
-                    @(saving ? "Saving..." : "Save case")
+                    @(saving ? "Saving..." : "Save Case")
                 </button>
-                <a class="btn btn-link" href="/cases">Cancel</a>
+                <a class="btn btn-outline-secondary" href="/cases">Cancel</a>
             </div>
         </div>
     </div>

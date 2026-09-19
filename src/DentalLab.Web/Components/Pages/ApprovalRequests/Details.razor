@@ -1,63 +1,171 @@
 @page "/approval-requests/{RequestId:long}"
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Owner,Admin,Staff")]
+
 @using System.Security.Claims
 @using DentalLab.Application.Abstractions
 @using DentalLab.Application.Models.Approvals
 @using DentalLab.Application.Security
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
+
 @inject ICaseApprovalService ApprovalService
 @inject NavigationManager Nav
+
 <PageTitle>Approval Request</PageTitle>
 
-@if (loading) { <p>Loading...</p> }
-else if (item is null) { <div class="alert alert-warning">Request not found or access denied.</div> }
-else
-{
-    <div class="d-flex justify-content-between align-items-start mb-3">
-        <div><h3>Approval Request #@item.RequestId</h3><span class="badge @StatusClass(item.Status)">@item.Status</span></div>
-        <div><a class="btn btn-outline-secondary" href="/approval-requests">Back</a><a class="btn btn-outline-primary ms-2" href="@($"/cases/{item.CaseId}")">View Case</a></div>
-    </div>
-    @if (item.Status == CaseApprovalRequestStatuses.Approved)
+<div class="request-details-page">
+    @if (loading)
     {
-        <div class="alert alert-primary"><strong>Approved, action pending.</strong> This request remains active and blocks any new request for Case #@item.CaseId until the approved action is completed.</div>
+        <div class="request-state">
+            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+            <span>Loading approval request...</span>
+        </div>
     }
-    <div class="card mb-3"><div class="card-body row g-3">
-        <div class="col-md-3"><b>Case</b><br />#@item.CaseId</div><div class="col-md-3"><b>Type</b><br />@item.RequestType</div>
-        <div class="col-md-3"><b>Requested By</b><br />@item.RequestedByEmail</div><div class="col-md-3"><b>Assigned Admin</b><br />@item.AssignedAdminEmail</div>
-        <div class="col-12"><b>Reason</b><br />@item.Reason</div>
-        @if (!string.IsNullOrWhiteSpace(item.AdditionalDetails)) { <div class="col-12"><b>Additional Details</b><br />@item.AdditionalDetails</div> }
-        @if (!string.IsNullOrWhiteSpace(item.ReviewComment)) { <div class="col-12"><b>Review</b><br />@item.ReviewComment</div> }
-    </div></div>
-
-    @if (CanReview && item.Status == CaseApprovalRequestStatuses.Pending)
+    else if (item is null)
     {
-        <EditForm Model="review" FormName="reviewApprovalForm"><DataAnnotationsValidator />
-            <div class="card"><div class="card-body">
-                <label class="form-label">Review comment</label><InputTextArea class="form-control" rows="3" @bind-Value="review.Comment" /><ValidationMessage For="() => review.Comment" />
-                @if (!string.IsNullOrWhiteSpace(error)) { <div class="alert alert-danger mt-3">@error</div> }
-                <div class="mt-3">
-                    @if (item.RequestType == CaseApprovalRequestTypes.Edit) { <button type="button" class="btn btn-primary" disabled="@saving" @onclick="ApproveEditAsync">Approve & Edit</button> }
-                    else { <button type="button" class="btn btn-danger" disabled="@saving" @onclick="ApproveCancelAsync">Approve Cancellation</button> }
-                    <button type="button" class="btn btn-outline-danger ms-2" disabled="@saving" @onclick="RejectAsync">Reject</button>
+        <div class="alert alert-warning">Request not found or access denied.</div>
+    }
+    else
+    {
+        <section class="request-hero">
+            <div>
+                <span class="eyebrow">Workflow request</span>
+                <h1>Approval Request #@item.RequestId</h1>
+                <div class="hero-meta">
+                    <span class="status-pill @StatusClass(item.Status)">@item.Status</span>
+                    <span>Case #@item.CaseId</span>
+                    <span>@item.RequestType request</span>
                 </div>
-            </div></div>
-        </EditForm>
-    }
-    else if (CanReview && item.Status == CaseApprovalRequestStatuses.Approved)
-    {
-        @if (!string.IsNullOrWhiteSpace(error)) { <div class="alert alert-danger">@error</div> }
-        @if (item.RequestType == CaseApprovalRequestTypes.Edit)
+            </div>
+            <div class="hero-actions">
+                <a class="btn hero-button" href="/approval-requests">Back</a>
+                <a class="btn hero-button hero-button-primary" href="@($"/cases/{item.CaseId}")">View Case</a>
+            </div>
+        </section>
+
+        @if (item.Status == CaseApprovalRequestStatuses.Approved)
         {
-            <a class="btn btn-primary" href="@($"/cases/{item.CaseId}/edit?requestId={item.RequestId}")">Continue Approved Edit</a>
+            <div class="workflow-alert">
+                <span class="workflow-alert-icon">!</span>
+                <div>
+                    <strong>Approved, action pending</strong>
+                    <p>This request remains active and blocks new requests for Case #@item.CaseId until the approved action is completed.</p>
+                </div>
+            </div>
         }
-        else
+
+        <section class="request-card">
+            <header class="request-card-header">
+                <div>
+                    <span class="section-kicker">Request overview</span>
+                    <h2>Request information</h2>
+                </div>
+                <span class="request-number">#@item.RequestId</span>
+            </header>
+
+            <div class="request-card-body">
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <span>Case</span>
+                        <strong>#@item.CaseId</strong>
+                    </div>
+                    <div class="summary-item">
+                        <span>Request Type</span>
+                        <strong>@item.RequestType</strong>
+                    </div>
+                    <div class="summary-item summary-email">
+                        <span>Requested By</span>
+                        <strong title="@item.RequestedByEmail">@item.RequestedByEmail</strong>
+                    </div>
+                    <div class="summary-item summary-email">
+                        <span>Assigned Admin</span>
+                        <strong title="@item.AssignedAdminEmail">@item.AssignedAdminEmail</strong>
+                    </div>
+                </div>
+
+                <div class="narrative-grid">
+                    <article class="narrative-card reason-card">
+                        <span>Reason</span>
+                        <p>@item.Reason</p>
+                    </article>
+
+                    @if (!string.IsNullOrWhiteSpace(item.AdditionalDetails))
+                    {
+                        <article class="narrative-card">
+                            <span>Additional Details</span>
+                            <p>@item.AdditionalDetails</p>
+                        </article>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(item.ReviewComment))
+                    {
+                        <article class="narrative-card review-card">
+                            <span>Review Decision</span>
+                            <p>@item.ReviewComment</p>
+                        </article>
+                    }
+                </div>
+            </div>
+        </section>
+
+        @if (CanReview && item.Status == CaseApprovalRequestStatuses.Pending)
         {
-            <button type="button" class="btn btn-danger" disabled="@saving" @onclick="ResumeCancellationAsync">Retry Approved Cancellation</button>
+            <EditForm Model="review" FormName="reviewApprovalForm">
+                <DataAnnotationsValidator />
+                <section class="request-card review-form-card">
+                    <header class="request-card-header">
+                        <div>
+                            <span class="section-kicker">Admin review</span>
+                            <h2>Review request</h2>
+                        </div>
+                    </header>
+                    <div class="request-card-body">
+                        <label class="form-label">Review comment</label>
+                        <InputTextArea class="form-control" rows="3" @bind-Value="review.Comment" placeholder="Enter the reason for the decision" />
+                        <ValidationMessage For="() => review.Comment" />
+                        @if (!string.IsNullOrWhiteSpace(error))
+                        {
+                            <div class="alert alert-danger mt-3">@error</div>
+                        }
+                    </div>
+                    <footer class="review-actions">
+                        @if (item.RequestType == CaseApprovalRequestTypes.Edit)
+                        {
+                            <button type="button" class="btn btn-primary" disabled="@saving" @onclick="ApproveEditAsync">Approve &amp; Edit</button>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-danger" disabled="@saving" @onclick="ApproveCancelAsync">Approve Cancellation</button>
+                        }
+                        <button type="button" class="btn btn-outline-danger" disabled="@saving" @onclick="RejectAsync">Reject</button>
+                    </footer>
+                </section>
+            </EditForm>
+        }
+        else if (CanReview && item.Status == CaseApprovalRequestStatuses.Approved)
+        {
+            @if (!string.IsNullOrWhiteSpace(error))
+            {
+                <div class="alert alert-danger">@error</div>
+            }
+            <div class="pending-action-card">
+                <div>
+                    <strong>Complete approved action</strong>
+                    <span>Finish the approved workflow to close this request.</span>
+                </div>
+                @if (item.RequestType == CaseApprovalRequestTypes.Edit)
+                {
+                    <a class="btn btn-primary" href="@($"/cases/{item.CaseId}/edit?requestId={item.RequestId}")">Continue Approved Edit</a>
+                }
+                else
+                {
+                    <button type="button" class="btn btn-danger" disabled="@saving" @onclick="ResumeCancellationAsync">Retry Approved Cancellation</button>
+                }
+            </div>
         }
     }
-}
+</div>
 
 @code {
     [Parameter] public long RequestId { get; set; }

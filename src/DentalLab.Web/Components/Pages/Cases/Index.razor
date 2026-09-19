@@ -31,13 +31,13 @@
             <div class="case-filters">
                 <div class="filter-field filter-case-id">
                     <label class="form-label">Case ID</label>
-                    <InputNumber class="form-control form-control-sm" @bind-Value="filter.CaseId" />
+                    <InputNumber class="form-control form-control-sm" @bind-Value="filter.CaseId" placeholder="Enter CaseID" />
                 </div>
 
                 <div class="filter-field filter-doctor">
                     <label class="form-label">Doctor</label>
                     <InputSelect class="form-select form-select-sm" @bind-Value="filter.DocId">
-                        <option value="">All doctors</option>
+                        <option value="">All Doctors</option>
                         @foreach (var doctor in doctors)
                         {
                             <option value="@doctor.DocId">@doctor.DocName</option>
@@ -47,25 +47,25 @@
 
                 <div class="filter-field filter-patient">
                     <label class="form-label">Patient / Reference</label>
-                    <InputText class="form-control form-control-sm" @bind-Value="filter.Patient" />
+                    <InputText class="form-control form-control-sm" @bind-Value="filter.Patient" placeholder="PatientName or Reference" />
                 </div>
 
                 <div class="filter-field filter-date">
                     <label class="form-label">From</label>
-                    <InputDate class="form-control form-control-sm" @bind-Value="filter.FromDate" />
+                    <InputDate class="form-control form-control-sm date-input" @bind-Value="filter.FromDate" placeholder="Start date" title="Start date" />
                 </div>
 
                 <div class="filter-field filter-date">
                     <label class="form-label">To</label>
-                    <InputDate class="form-control form-control-sm" @bind-Value="filter.ToDate" />
+                    <InputDate class="form-control form-control-sm date-input" @bind-Value="filter.ToDate" placeholder="End date" title="End date" />
                 </div>
 
                 <div class="filter-field filter-status">
                     <label class="form-label">Status</label>
                     <InputSelect class="form-select form-select-sm" @bind-Value="filter.Status">
-                        <option>Active</option>
-                        <option>Cancelled</option>
-                        <option>All</option>
+                        <option value="All">All</option>
+                        <option value="Active">Active</option>
+                        <option value="Cancelled">Cancelled</option>
                     </InputSelect>
                 </div>
 
@@ -81,7 +81,7 @@
     {
         <div class="text-center py-4">
             <div class="spinner-border spinner-border-sm" role="status" aria-label="Loading"></div>
-            <span class="ms-2">Loading cases...</span>
+            <span class="ms-2">Loading Cases...</span>
         </div>
     }
     else if (!string.IsNullOrWhiteSpace(error))
@@ -98,30 +98,38 @@
             <table class="table table-sm table-bordered table-hover align-middle case-table">
                 <thead>
                     <tr>
-                        <th>Case ID</th>
-                        <th>Date</th>
-                        <th>Doctor</th>
+                        <th><button type="button" class="sort-header" @onclick="() => SortBy(CaseSortColumn.CaseId)">Case ID <span class="sort-indicator">@SortIndicator(CaseSortColumn.CaseId)</span></button></th>
+                        <th><button type="button" class="sort-header" @onclick="() => SortBy(CaseSortColumn.Date)">Date <span class="sort-indicator">@SortIndicator(CaseSortColumn.Date)</span></button></th>
+                        <th><button type="button" class="sort-header" @onclick="() => SortBy(CaseSortColumn.Doctor)">Doctor <span class="sort-indicator">@SortIndicator(CaseSortColumn.Doctor)</span></button></th>
                         <th>Patient</th>
                         <th>Teeth / Arch</th>
                         <th>Type</th>
                         <th class="text-end">Unit Rate</th>
                         <th class="text-end">Units</th>
                         <th class="text-end">Unit Amount</th>
-                        <th class="text-end">Total Amount</th>
-                        <th>Created By</th>
+                        <th class="text-end"><button type="button" class="sort-header sort-header-end" @onclick="() => SortBy(CaseSortColumn.TotalAmount)">Total Amount <span class="sort-indicator">@SortIndicator(CaseSortColumn.TotalAmount)</span></button></th>
                         <th>Status</th>
                         <th class="text-center">View</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var item in result.Items)
+                    @{
+                        var visibleItems = SortedItems.ToList();
+                    }
+                    @for (var caseIndex = 0; caseIndex < visibleItems.Count; caseIndex++)
                     {
+                        var item = visibleItems[caseIndex];
                         var rowSpan = Math.Max(item.Lines.Count, 1);
+                        var caseGroupClass = caseIndex % 2 == 0
+                            ? "case-group-light"
+                            : "case-group-shaded";
 
                         @for (var index = 0; index < item.Lines.Count; index++)
                         {
                             var line = item.Lines[index];
-                            <tr class="@(item.IsCancelled ? "cancelled-case" : null)">
+                            <tr class="@GetCaseRowClass(caseGroupClass, item.IsCancelled, item.CaseId)"
+                                @onmouseenter="() => hoveredCaseId = item.CaseId"
+                                @onmouseleave="() => hoveredCaseId = null">
                                 @if (index == 0)
                                 {
                                     <td rowspan="@rowSpan" class="case-id-cell">#@item.CaseId</td>
@@ -149,8 +157,7 @@
                                 @if (index == 0)
                                 {
                                     <td rowspan="@rowSpan" class="text-end text-nowrap total-amount-cell">@item.TotalAmount.ToString("N2")</td>
-                                    <td rowspan="@rowSpan" class="created-by-cell">@DisplayValue(item.CreatedBy)</td>
-                                    <td rowspan="@rowSpan">
+                                    <td rowspan="@rowSpan" class="status-cell">
                                         @if (item.IsCancelled)
                                         {
                                             <span class="badge text-bg-secondary">Cancelled</span>
@@ -160,7 +167,7 @@
                                             <span class="badge text-bg-success">Active</span>
                                         }
                                     </td>
-                                    <td rowspan="@rowSpan" class="text-center">
+                                    <td rowspan="@rowSpan" class="text-center view-cell">
                                         <a class="btn btn-sm btn-outline-primary view-button" href="@($"/cases/{item.CaseId}")">View</a>
                                     </td>
                                 }
@@ -196,10 +203,14 @@
     private List<Doctor> doctors = [];
     private PagedResult<CaseListItem>? result;
     private bool loading;
+    private int? hoveredCaseId;
+    private CaseSortColumn sortColumn = CaseSortColumn.Date;
+    private bool sortDescending = true;
     private string? error;
 
     protected override async Task OnInitializedAsync()
     {
+        filter.Status = "All";
         doctors = await DoctorService.GetAllAsync();
         await LoadAsync();
     }
@@ -226,9 +237,64 @@
         filter.Patient = null;
         filter.FromDate = null;
         filter.ToDate = null;
-        filter.Status = "Active";
+        filter.Status = "All";
         filter.PageNumber = 1;
         await LoadAsync();
+    }
+
+    private IEnumerable<CaseListItem> SortedItems
+    {
+        get
+        {
+            if (result is null)
+            {
+                return [];
+            }
+
+            return (sortColumn, sortDescending) switch
+            {
+                (CaseSortColumn.CaseId, false) => result.Items.OrderBy(item => item.CaseId),
+                (CaseSortColumn.CaseId, true) => result.Items.OrderByDescending(item => item.CaseId),
+                (CaseSortColumn.Date, false) => result.Items.OrderBy(item => item.CaseDate),
+                (CaseSortColumn.Date, true) => result.Items.OrderByDescending(item => item.CaseDate),
+                (CaseSortColumn.Doctor, false) => result.Items.OrderBy(item => item.DoctorName),
+                (CaseSortColumn.Doctor, true) => result.Items.OrderByDescending(item => item.DoctorName),
+                (CaseSortColumn.TotalAmount, false) => result.Items.OrderBy(item => item.TotalAmount),
+                _ => result.Items.OrderByDescending(item => item.TotalAmount)
+            };
+        }
+    }
+
+    private void SortBy(CaseSortColumn column)
+    {
+        if (sortColumn == column)
+        {
+            sortDescending = !sortDescending;
+            return;
+        }
+
+        sortColumn = column;
+        sortDescending = column is CaseSortColumn.CaseId
+            or CaseSortColumn.Date
+            or CaseSortColumn.TotalAmount;
+    }
+
+    private string SortIndicator(CaseSortColumn column)
+    {
+        if (sortColumn != column)
+        {
+            return "↕";
+        }
+
+        return sortDescending ? "↓" : "↑";
+    }
+
+    private string GetCaseRowClass(string groupClass, bool isCancelled, int caseId)
+    {
+        var classes = new List<string> { groupClass };
+        if (isCancelled) classes.Add("cancelled-case");
+        if (hoveredCaseId == caseId) classes.Add("case-group-hovered");
+        return string.Join(" ", classes);
     }
 
     private async Task PreviousAsync()
@@ -267,5 +333,12 @@
             _ => "text-bg-secondary"
         };
         return $"badge case-badge {colour}";
+    }
+    private enum CaseSortColumn
+    {
+        CaseId,
+        Date,
+        Doctor,
+        TotalAmount
     }
 }

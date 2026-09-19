@@ -1,4 +1,4 @@
-﻿@page "/doctor-rates"
+@page "/doctor-rates"
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Owner,Admin")]
 
@@ -13,133 +13,142 @@
 
 <PageTitle>Doctor Rates</PageTitle>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
+<section class="rates-hero">
     <div>
         <h3 class="mb-1">Doctor Rates</h3>
-        <p class="text-muted mb-0">
-            View and manage case-type pricing across all doctors.
-        </p>
+        <p class="text-muted mb-0">View and manage case-type pricing across all doctors.</p>
     </div>
-</div>
+</section>
 
-<div class="card mb-4">
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-4">
-                <label class="form-label">Doctor</label>
-                <select class="form-select"
-                        value="@SelectedDoctorValue"
-                        @onchange="DoctorChanged">
-                    <option value="">All doctors</option>
-                    @foreach (var doctor in doctors)
-                    {
-                        <option value="@doctor.DocId">@doctor.DocName</option>
-                    }
-                </select>
-            </div>
-
-            <div class="col-md-4">
-                <label class="form-label">Case type</label>
-                <select class="form-select"
-                        value="@SelectedCaseTypeValue"
-                        @onchange="CaseTypeChanged">
-                    <option value="">All case types</option>
-                    @foreach (var caseType in caseTypes)
-                    {
-                        <option value="@caseType.CaseTypeId">
-                            @caseType.CaseTypeCode - @caseType.CaseTypeName
-                        </option>
-                    }
-                </select>
-            </div>
-
-            <div class="col-md-4 d-flex align-items-end">
-                <div class="form-check mb-2">
-                    <input class="form-check-input"
-                           type="checkbox"
-                           id="showInactiveRates"
-                           checked="@includeInactive"
-                           @onchange="InactiveChanged" />
-                    <label class="form-check-label" for="showInactiveRates">
-                        Show inactive rates
-                    </label>
-                </div>
-            </div>
-        </div>
+<section class="rates-directory-card">
+    <div class="directory-copy">
+        <strong>Rate directory</strong>
+        <span>Search and filter doctor pricing</span>
     </div>
-</div>
+
+    <div class="directory-controls">
+        <input class="form-control form-control-sm search-input"
+               placeholder="Search doctor, code, or case type"
+               value="@searchText"
+               @oninput="SearchChanged" />
+
+        <select class="form-select form-select-sm doctor-filter"
+                value="@SelectedDoctorValue"
+                @onchange="DoctorChanged">
+            <option value="">All Doctors</option>
+            @foreach (var doctor in doctors)
+            {
+                <option value="@doctor.DocId">@doctor.DocName</option>
+            }
+        </select>
+
+        <select class="form-select form-select-sm case-filter"
+                value="@SelectedCaseTypeValue"
+                @onchange="CaseTypeChanged">
+            <option value="">All Case Types</option>
+            @foreach (var caseType in caseTypes)
+            {
+                <option value="@caseType.CaseTypeId">@caseType.CaseTypeCode - @caseType.CaseTypeName</option>
+            }
+        </select>
+
+        <label class="inactive-filter" for="showInactiveRates">
+            <input class="form-check-input"
+                   type="checkbox"
+                   id="showInactiveRates"
+                   checked="@includeInactive"
+                   @onchange="InactiveChanged" />
+            <span>Show inactive</span>
+        </label>
+    </div>
+</section>
 
 @if (isLoading)
 {
-    <p>Loading...</p>
-}
-else if (rates.Count == 0)
-{
-    <div class="alert alert-info">
-        No doctor rates were found for the selected filters.
+    <div class="directory-state">
+        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+        <span>Loading doctor rates...</span>
     </div>
+}
+else if (PagedRates.Count == 0)
+{
+    <div class="alert alert-info">No doctor rates were found for the selected filters.</div>
 }
 else
 {
-    <div class="table-responsive">
-        <table class="table table-hover align-middle">
-            <thead>
-                <tr>
-                    <th>Doctor</th>
-                    <th>Code</th>
-                    <th>Case Type</th>
-                    <th>Scope</th>
-                    <th class="text-end">Cost</th>
-                    <th>Status</th>
-                    <th class="text-end">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var rate in rates)
-                {
-                    <tr class="@(rate.IsActive ? string.Empty : "text-muted")">
-                        <td>@rate.DocName</td>
-                        <td><code>@rate.CaseTypeCode</code></td>
-                        <td>@rate.CaseTypeName</td>
-                        <td>
-                            <span class="badge bg-light text-dark">
-                                @(rate.Scope == 'A' ? "Whole arch" : "Per tooth")
-                            </span>
-                        </td>
-                        <td class="text-end">@rate.Cost.ToString("N2")</td>
-                        <td>
-                            <span class="badge bg-@(rate.IsActive ? "success" : "secondary")">
-                                @(rate.IsActive ? "Active" : "Inactive")
-                            </span>
-                        </td>
-                        <td class="text-end">
-                            <a class="btn btn-sm btn-outline-primary"
-                               href="@($"/doctors/{rate.DocId}/rates")">
-                                Manage
-                            </a>
-                        </td>
+    <section class="rates-table-card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 rates-table">
+                <thead>
+                    <tr>
+                        <th>Doctor</th>
+                        <th>Code</th>
+                        <th>Case Type</th>
+                        <th>Scope</th>
+                        <th>Cost</th>
+                        <th>Status</th>
+                        <th>Actions</th>
                     </tr>
-                }
-            </tbody>
-        </table>
-    </div>
+                </thead>
+                <tbody>
+                    @for (var index = 0; index < PagedRates.Count; index++)
+                    {
+                        var rate = PagedRates[index];
+                        <tr class="@(index % 2 == 0 ? "row-light" : "row-shaded") @(!rate.IsActive ? "inactive-row" : string.Empty)">
+                            <td class="doctor-cell">@rate.DocName</td>
+                            <td><code>@rate.CaseTypeCode</code></td>
+                            <td>@rate.CaseTypeName</td>
+                            <td><span class="scope-badge">@(rate.Scope == 'A' ? "Whole arch" : "Per tooth")</span></td>
+                            <td class="cost-cell">@rate.Cost.ToString("N2")</td>
+                            <td><span class="status-badge @(rate.IsActive ? "status-active" : "status-inactive")">@(rate.IsActive ? "Active" : "Inactive")</span></td>
+                            <td><a class="btn btn-sm btn-outline-primary manage-button" href="@($"/doctors/{rate.DocId}/rates")">Manage</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pagination-bar">
+            <span>Page @PageNumber of @TotalPages <span class="text-muted">(@FilteredRates.Count total)</span></span>
+            <div class="pagination-controls">
+                <label for="ratesPageSize">Rows</label>
+                <select id="ratesPageSize" class="form-select form-select-sm page-size" value="@pageSize" @onchange="PageSizeChanged">
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                </select>
+                <button type="button" class="btn btn-sm btn-outline-secondary" disabled="@(PageNumber <= 1)" @onclick="PreviousPage">Previous</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" disabled="@(PageNumber >= TotalPages)" @onclick="NextPage">Next</button>
+            </div>
+        </div>
+    </section>
 }
 
 @code {
     private List<Doctor> doctors = new();
     private List<CaseType> caseTypes = new();
     private List<DoctorRateListItem> rates = new();
-
     private int? selectedDoctorId;
     private int? selectedCaseTypeId;
     private bool includeInactive;
     private bool isLoading = true;
+    private string searchText = string.Empty;
+    private int pageNumber = 1;
+    private int pageSize = 10;
 
-    private string SelectedDoctorValue =>
-        selectedDoctorId?.ToString() ?? string.Empty;
+    private string SelectedDoctorValue => selectedDoctorId?.ToString() ?? string.Empty;
+    private string SelectedCaseTypeValue => selectedCaseTypeId?.ToString() ?? string.Empty;
 
-    private string SelectedCaseTypeValue =>
-        selectedCaseTypeId?.ToString() ?? string.Empty;
+    private List<DoctorRateListItem> FilteredRates => rates
+        .Where(rate => string.IsNullOrWhiteSpace(searchText) ||
+            rate.DocName.Contains(searchText.Trim(), StringComparison.OrdinalIgnoreCase) ||
+            rate.CaseTypeCode.Contains(searchText.Trim(), StringComparison.OrdinalIgnoreCase) ||
+            rate.CaseTypeName.Contains(searchText.Trim(), StringComparison.OrdinalIgnoreCase))
+        .ToList();
+
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(FilteredRates.Count / (double)pageSize));
+    private int PageNumber { get => Math.Min(pageNumber, TotalPages); set => pageNumber = Math.Clamp(value, 1, TotalPages); }
+    private List<DoctorRateListItem> PagedRates => FilteredRates.Skip((PageNumber - 1) * pageSize).Take(pageSize).ToList();
 
     protected override async Task OnInitializedAsync()
     {
@@ -151,41 +160,15 @@ else
     private async Task LoadRatesAsync()
     {
         isLoading = true;
-
-        try
-        {
-            rates = await DoctorRateService.GetAllAsync(
-                selectedDoctorId,
-                selectedCaseTypeId,
-                includeInactive);
-        }
-        finally
-        {
-            isLoading = false;
-        }
+        try { rates = await DoctorRateService.GetAllAsync(selectedDoctorId, selectedCaseTypeId, includeInactive); }
+        finally { isLoading = false; }
     }
 
-    private async Task DoctorChanged(ChangeEventArgs args)
-    {
-        selectedDoctorId = int.TryParse(args.Value?.ToString(), out var doctorId)
-            ? doctorId
-            : null;
-
-        await LoadRatesAsync();
-    }
-
-    private async Task CaseTypeChanged(ChangeEventArgs args)
-    {
-        selectedCaseTypeId = int.TryParse(args.Value?.ToString(), out var caseTypeId)
-            ? caseTypeId
-            : null;
-
-        await LoadRatesAsync();
-    }
-
-    private async Task InactiveChanged(ChangeEventArgs args)
-    {
-        includeInactive = args.Value is bool value && value;
-        await LoadRatesAsync();
-    }
+    private void SearchChanged(ChangeEventArgs args) { searchText = args.Value?.ToString() ?? string.Empty; pageNumber = 1; }
+    private async Task DoctorChanged(ChangeEventArgs args) { selectedDoctorId = int.TryParse(args.Value?.ToString(), out var id) ? id : null; pageNumber = 1; await LoadRatesAsync(); }
+    private async Task CaseTypeChanged(ChangeEventArgs args) { selectedCaseTypeId = int.TryParse(args.Value?.ToString(), out var id) ? id : null; pageNumber = 1; await LoadRatesAsync(); }
+    private async Task InactiveChanged(ChangeEventArgs args) { includeInactive = args.Value is bool value && value; pageNumber = 1; await LoadRatesAsync(); }
+    private void PreviousPage() => PageNumber--;
+    private void NextPage() => PageNumber++;
+    private void PageSizeChanged(ChangeEventArgs args) { if (int.TryParse(args.Value?.ToString(), out var value)) pageSize = value; pageNumber = 1; }
 }

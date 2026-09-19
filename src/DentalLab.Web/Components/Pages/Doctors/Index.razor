@@ -1,94 +1,214 @@
-﻿@page "/doctors"
+@page "/doctors"
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Owner,Admin")]
+
 @using DentalLab.Application.Abstractions
 @using DentalLab.Domain.Entities
 @using Microsoft.AspNetCore.Authorization
+
 @inject IDoctorService DoctorService
 
 <PageTitle>Doctors</PageTitle>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h3 class="mb-0">Doctors</h3>
-    <a class="btn btn-primary" href="/doctors/new">Add doctor</a>
+<div class="doctors-page">
+    <section class="doctors-hero">
+        <div>
+            <span class="eyebrow">Directory management</span>
+            <h1>Doctors</h1>
+            <p>Manage doctor contact details, rates, and account availability.</p>
+        </div>
+        <a class="btn add-doctor-button" href="/doctors/new">Add Doctor</a>
+    </section>
+
+    <section class="doctor-toolbar">
+        <div class="toolbar-copy">
+            <strong>Doctor directory</strong>
+            <span>@FilteredDoctors.Count doctor(s)</span>
+        </div>
+
+        <div class="toolbar-controls">
+            <label class="search-field">
+                <span class="visually-hidden">Search doctors</span>
+                <input class="form-control form-control-sm"
+                       placeholder="Search name, phone or email"
+                       @bind="searchText"
+                       @bind:event="oninput" />
+            </label>
+
+            <div class="form-check inactive-check">
+                <input class="form-check-input"
+                       type="checkbox"
+                       id="showInactive"
+                       checked="@showInactive"
+                       @onchange="ToggleInactive" />
+                <label class="form-check-label" for="showInactive">Inactive</label>
+            </div>
+        </div>
+    </section>
+
+    @if (loading)
+    {
+        <div class="directory-state">
+            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+            <span>Loading doctors...</span>
+        </div>
+    }
+    else if (PagedDoctors.Count == 0)
+    {
+        <div class="alert alert-info">No doctors match the current filters.</div>
+    }
+    else
+    {
+        <section class="doctors-table-card">
+            <div class="table-responsive">
+                <table class="table doctors-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>
+                                <button type="button" class="sort-header" @onclick="() => SortBy(DoctorSortColumn.DocId)">
+                                    DocId <span>@SortIndicator(DoctorSortColumn.DocId)</span>
+                                </button>
+                            </th>
+                            <th>
+                                <button type="button" class="sort-header" @onclick="() => SortBy(DoctorSortColumn.Name)">
+                                    Name <span>@SortIndicator(DoctorSortColumn.Name)</span>
+                                </button>
+                            </th>
+                            <th>
+                                <button type="button" class="sort-header" @onclick="() => SortBy(DoctorSortColumn.Phone)">
+                                    Phone <span>@SortIndicator(DoctorSortColumn.Phone)</span>
+                                </button>
+                            </th>
+                            <th>
+                                <button type="button" class="sort-header" @onclick="() => SortBy(DoctorSortColumn.Email)">
+                                    Email <span>@SortIndicator(DoctorSortColumn.Email)</span>
+                                </button>
+                            </th>
+                            <th>
+                                <button type="button" class="sort-header" @onclick="() => SortBy(DoctorSortColumn.Status)">
+                                    Status <span>@SortIndicator(DoctorSortColumn.Status)</span>
+                                </button>
+                            </th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var index = 0; index < PagedDoctors.Count; index++)
+                        {
+                            var doctor = PagedDoctors[index];
+                            <tr class="@(index % 2 == 0 ? "doctor-row-light" : "doctor-row-shaded") @(doctor.IsActive ? string.Empty : "inactive-row")">
+                                <td class="doctor-id">#@doctor.DocId</td>
+                                <td class="doctor-name">@doctor.DocName</td>
+                                <td>@Display(doctor.Phone)</td>
+                                <td title="@doctor.Email">@Display(doctor.Email)</td>
+                                <td>
+                                    <span class="status-badge @(doctor.IsActive ? "status-active" : "status-inactive")">
+                                        @(doctor.IsActive ? "Active" : "Inactive")
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="action-group">
+                                        <a class="btn btn-sm btn-outline-primary" href="@($"/doctors/{doctor.DocId}")">Edit</a>
+                                        <a class="btn btn-sm btn-outline-info" href="@($"/doctors/{doctor.DocId}/rates")">Rates</a>
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-secondary"
+                                                @onclick="() => ToggleActive(doctor)">
+                                            @(doctor.IsActive ? "Deactivate" : "Reactivate")
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pagination-bar">
+                <span>Page @PageNumber of @TotalPages <span class="text-muted">(@FilteredDoctors.Count total)</span></span>
+                <div class="pagination-controls">
+                    <label for="doctorPageSize">Rows</label>
+                    <select id="doctorPageSize" class="form-select form-select-sm page-size" value="@pageSize" @onchange="PageSizeChanged">
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                    </select>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled="@(PageNumber <= 1)" @onclick="PreviousPage">Previous</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled="@(PageNumber >= TotalPages)" @onclick="NextPage">Next</button>
+                </div>
+            </div>
+        </section>
+    }
 </div>
-
-<div class="form-check mb-3">
-    <input class="form-check-input" type="checkbox" id="showInactive"
-           checked="@showInactive" @onchange="ToggleInactive" />
-    <label class="form-check-label" for="showInactive">Show inactive</label>
-</div>
-
-@if (doctors is null)
-{
-    <p>Loading...</p>
-}
-else if (doctors.Count == 0)
-{
-    <div class="alert alert-info">No doctors found. Add the first doctor.</div>
-}
-else
-{
-    <div class="table-responsive">
-        <table class="table table-hover align-middle">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Phone</th>
-                    <th>Email</th>
-                    <th>Status</th>
-                    <th class="text-end">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var doctor in doctors)
-                {
-                    <tr class="@(doctor.IsActive ? string.Empty : "text-muted")">
-                        <td>@doctor.DocName</td>
-                        <td>@doctor.Phone</td>
-                        <td>@doctor.Email</td>
-                        <td>
-                            <span class="badge bg-@(doctor.IsActive ? "success" : "secondary")">
-                                @(doctor.IsActive ? "Active" : "Inactive")
-                            </span>
-                        </td>
-                        <td class="text-end">
-                            <a class="btn btn-sm btn-outline-primary me-1"
-                               href="@($"/doctors/{doctor.DocId}")">Edit</a>
-
-                            <a class="btn btn-sm btn-outline-info me-1"
-                               href="@($"/doctors/{doctor.DocId}/rates")">Rates</a>
-
-                            <button type="button"
-                                    class="btn btn-sm btn-outline-secondary"
-                                    @onclick="() => ToggleActive(doctor)">
-                                @(doctor.IsActive ? "Deactivate" : "Reactivate")
-                            </button>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-}
 
 @code {
-    private List<Doctor>? doctors;
+    private List<Doctor> doctors = [];
     private bool showInactive;
+    private bool loading = true;
+    private string searchText = string.Empty;
+    private DoctorSortColumn sortColumn = DoctorSortColumn.Name;
+    private bool sortDescending;
+    private int pageNumber = 1;
+    private int pageSize = 10;
 
-    protected override async Task OnInitializedAsync()
+    private int PageNumber
     {
-        await LoadAsync();
+        get => Math.Min(pageNumber, TotalPages);
+        set => pageNumber = Math.Clamp(value, 1, TotalPages);
     }
+
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(FilteredDoctors.Count / (double)pageSize));
+
+    private List<Doctor> FilteredDoctors
+    {
+        get
+        {
+            IEnumerable<Doctor> query = doctors;
+            if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                var term = searchText.Trim();
+                query = query.Where(doctor =>
+                    doctor.DocName.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                    (doctor.Phone?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (doctor.Email?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false));
+            }
+
+            query = (sortColumn, sortDescending) switch
+            {
+                (DoctorSortColumn.DocId, false) => query.OrderBy(doctor => doctor.DocId),
+                (DoctorSortColumn.DocId, true) => query.OrderByDescending(doctor => doctor.DocId),
+                (DoctorSortColumn.Name, false) => query.OrderBy(doctor => doctor.DocName),
+                (DoctorSortColumn.Name, true) => query.OrderByDescending(doctor => doctor.DocName),
+                (DoctorSortColumn.Phone, false) => query.OrderBy(doctor => doctor.Phone),
+                (DoctorSortColumn.Phone, true) => query.OrderByDescending(doctor => doctor.Phone),
+                (DoctorSortColumn.Email, false) => query.OrderBy(doctor => doctor.Email),
+                (DoctorSortColumn.Email, true) => query.OrderByDescending(doctor => doctor.Email),
+                (DoctorSortColumn.Status, false) => query.OrderByDescending(doctor => doctor.IsActive),
+                _ => query.OrderBy(doctor => doctor.IsActive)
+            };
+
+            return query.ToList();
+        }
+    }
+
+    private List<Doctor> PagedDoctors => FilteredDoctors
+        .Skip((PageNumber - 1) * pageSize)
+        .Take(pageSize)
+        .ToList();
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
 
     private async Task LoadAsync()
     {
-        doctors = await DoctorService.GetAllAsync(showInactive);
+        loading = true;
+        try { doctors = await DoctorService.GetAllAsync(showInactive); }
+        finally { loading = false; }
     }
 
     private async Task ToggleInactive(ChangeEventArgs args)
     {
         showInactive = args.Value is bool value && value;
+        pageNumber = 1;
         await LoadAsync();
     }
 
@@ -97,4 +217,24 @@ else
         await DoctorService.SetActiveAsync(doctor.DocId, !doctor.IsActive);
         await LoadAsync();
     }
+
+    private void SortBy(DoctorSortColumn column)
+    {
+        if (sortColumn == column) sortDescending = !sortDescending;
+        else { sortColumn = column; sortDescending = false; }
+        pageNumber = 1;
+    }
+
+    private string SortIndicator(DoctorSortColumn column) => sortColumn != column ? "↕" : sortDescending ? "↓" : "↑";
+    private void PreviousPage() => PageNumber--;
+    private void NextPage() => PageNumber++;
+
+    private void PageSizeChanged(ChangeEventArgs args)
+    {
+        if (int.TryParse(args.Value?.ToString(), out var value)) pageSize = value;
+        pageNumber = 1;
+    }
+
+    private static string Display(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+    private enum DoctorSortColumn { DocId, Name, Phone, Email, Status }
 }

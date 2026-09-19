@@ -41,12 +41,21 @@ else
         <div class="col"><b>Created</b><br />@item.CreatedBy<br />@item.CreatedAt.ToLocalTime()</div>
         <div class="col"><b>Modified</b><br />@(item.ModifiedBy ?? "-")<br />@item.ModifiedAt?.ToLocalTime()</div>
     </div></div>
-    <table class="table table-bordered"><thead><tr><th>#</th><th>Teeth</th><th>Type</th><th>Rate</th><th>Units</th><th>Amount</th></tr></thead><tbody>
-        @foreach (var l in item.Lines)
-        {
-            <tr><td>@l.LineNumber</td><td><CompactToothGrid Scope="@l.Scope" Arch="@l.Arch" UR="@l.UR" UL="@l.UL" LR="@l.LR" LL="@l.LL" /></td><td>@l.CaseTypeCode - @l.CaseTypeName</td><td>@l.UnitRate.ToString("N2")</td><td>@l.Units</td><td>@l.Amount.ToString("N2")</td></tr>
-        }
-    </tbody></table>
+
+    <div class="case-lines-card">
+        <div class="case-lines-heading">Case Details</div>
+        <div class="table-responsive">
+            <table class="table table-bordered case-lines-table mb-0">
+                <thead><tr><th>#</th><th>Teeth</th><th>Type</th><th>Rate</th><th>Units</th><th>Amount</th></tr></thead>
+                <tbody>
+                    @foreach (var l in item.Lines)
+                    {
+                        <tr><td>@l.LineNumber</td><td><CompactToothGrid Scope="@l.Scope" Arch="@l.Arch" UR="@l.UR" UL="@l.UL" LR="@l.LR" LL="@l.LL" /></td><td>@l.CaseTypeCode - @l.CaseTypeName</td><td>@l.UnitRate.ToString("N2")</td><td>@l.Units</td><td>@l.Amount.ToString("N2")</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
 }
 @code {
     [Parameter] public int CaseId { get; set; }

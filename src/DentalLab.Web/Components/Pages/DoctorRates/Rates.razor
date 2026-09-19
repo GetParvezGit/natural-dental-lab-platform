@@ -22,14 +22,14 @@
 else
 {
     <div class="rate-page">
-        <div class="rate-heading">
+        <section class="rate-hero">
             <div>
                 <h3 class="mb-1">Rate Card</h3>
                 <p class="text-muted mb-0">@doctor.DocName</p>
             </div>
 
-            <a class="btn btn-sm btn-outline-secondary" href="/doctors">Back</a>
-        </div>
+            <a class="btn rate-back-button" href="/doctors">Back</a>
+        </section>
 
         @if (!string.IsNullOrWhiteSpace(successMessage))
         {
@@ -55,7 +55,7 @@ else
             </div>
         }
 
-        <div class="row g-3">
+        <div class="row g-3 rate-layout">
             <div class="col-xl-9 col-lg-8">
                 @if (rates is null)
                 {
@@ -74,13 +74,13 @@ else
                                     <th>Code</th>
                                     <th>Name</th>
                                     <th>Scope</th>
-                                    <th class="text-end">Cost</th>
+                                    <th class="text-center">Cost</th>
                                     <th>Status</th>
-                                    <th class="text-end">Actions</th>
+                                    <th class="text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var rate in rates)
+                                @foreach (var rate in PagedRates)
                                 {
                                     var key = GetRateKey(rate);
 
@@ -134,6 +134,17 @@ else
                                 }
                             </tbody>
                         </table>
+                        <div class="pagination-bar">
+                            <span>Page @PageNumber of @TotalPages <span class="text-muted">(@rates.Count total)</span></span>
+                            <div class="pagination-controls">
+                                <label for="rateCardPageSize">Rows</label>
+                                <select id="rateCardPageSize" class="form-select form-select-sm page-size" value="@pageSize" @onchange="PageSizeChanged">
+                                    <option value="10">10</option><option value="20">20</option><option value="50">50</option>
+                                </select>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" disabled="@(PageNumber <= 1)" @onclick="PreviousPage">Previous</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" disabled="@(PageNumber >= TotalPages)" @onclick="NextPage">Next</button>
+                            </div>
+                        </div>
                     </div>
                 }
             </div>
@@ -200,6 +211,12 @@ else
 
     private bool editing;
     private bool saving;
+    private int pageNumber = 1;
+    private int pageSize = 10;
+
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling((rates?.Count ?? 0) / (double)pageSize));
+    private int PageNumber { get => Math.Min(pageNumber, TotalPages); set => pageNumber = Math.Clamp(value, 1, TotalPages); }
+    private List<DoctorRateListItem> PagedRates => (rates ?? []).Skip((PageNumber - 1) * pageSize).Take(pageSize).ToList();
     private string? error;
     private string? successMessage;
     private readonly HashSet<string> busyKeys = [];
@@ -343,6 +360,10 @@ else
             busyKeys.Remove(key);
         }
     }
+
+    private void PreviousPage() => PageNumber--;
+    private void NextPage() => PageNumber++;
+    private void PageSizeChanged(ChangeEventArgs args) { if (int.TryParse(args.Value?.ToString(), out var value)) pageSize = value; pageNumber = 1; }
 
     private static string GetRateKey(DoctorRateListItem rate)
     {

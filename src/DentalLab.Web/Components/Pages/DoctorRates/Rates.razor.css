@@ -1,68 +1,60 @@
-.rate-page {
-    width: 100%;
-    min-width: 0;
+.rate-page { width:100%; min-width:0; color:#182233; }
+.rate-hero { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:1.35rem 1.5rem; margin-bottom:1rem; color:#fff; background:radial-gradient(circle at 86% 10%,rgba(255,255,255,.17),transparent 16rem),linear-gradient(120deg,#17324d,#2f6fed 65%,#0a9b8e); border-radius:18px; box-shadow:0 12px 30px rgba(35,68,120,.14); }
+.rate-hero h3 { margin:0 0 .25rem; font-size:1.65rem; font-weight:800; letter-spacing:-.025em; }
+.rate-hero .text-muted { color:rgba(255,255,255,.82)!important; }
+.rate-back-button { display:inline-flex; align-items:center; justify-content:center; min-height:42px; padding:.55rem 1rem; color:#245bc5; font-weight:760; line-height:1; background:#fff; border:0; border-radius:10px; box-shadow:0 8px 20px rgba(16,43,82,.14); }
+.rate-back-button:hover { color:#174ea7; background:#f4f8ff; }
+::deep .alert { border:0; border-radius:12px; }
+.rate-table-wrapper { overflow:hidden; background:#fff; border:1px solid #dfe5ed; border-radius:14px; box-shadow:0 7px 24px rgba(24,34,51,.05); }
+.rate-table { min-width:720px; margin:0; color:#344054; font-size:.76rem; }
+::deep .rate-table > :not(caption) > * > * { padding:.68rem .72rem; vertical-align:middle; border-right:1px solid #e8edf3; border-bottom:1px solid #e8edf3; }
+::deep .rate-table > :not(caption) > * > *:last-child { border-right:0; }
+::deep .rate-table thead th { color:#667085; font-size:.65rem; font-weight:820; letter-spacing:.045em; white-space:nowrap; text-transform:uppercase; background:#f8fafc; }
+::deep .rate-table tbody tr:nth-child(even)>td { background:#f5f7fa; }
+::deep .rate-table tbody tr:hover>td { background:#eaf2ff; }
+.rate-table code { font-size:.72rem; }
+.inactive-rate { color:#667085; opacity:.72; }
+.rate-form-card { overflow:hidden; border:1px solid #e2e8f0; border-radius:16px; box-shadow:0 7px 24px rgba(24,34,51,.05); }
+.rate-form-card .card-header { padding:.85rem 1rem; color:#17324d; font-size:.82rem; font-weight:780; background:#f8fafc; border-bottom:1px solid #e7ebf1; }
+.rate-form-card .card-body { padding:1rem; }
+.rate-form-card .form-label { margin-bottom:.28rem; color:#475467; font-size:.72rem; font-weight:750; }
+::deep .rate-form-card .form-control, ::deep .rate-form-card .form-select { min-height:40px; border-color:#d8e0eb; border-radius:9px; }
+::deep .rate-form-card .form-control:focus, ::deep .rate-form-card .form-select:focus { border-color:#2f6fed; box-shadow:0 0 0 .18rem rgba(47,111,237,.12); }
+.rate-form-card .validation-message { display:block; margin-top:.2rem; color:#b4233f; font-size:.68rem; }
+::deep .btn { display:inline-flex; align-items:center; justify-content:center; text-align:center; line-height:1; }
+::deep .rate-table .badge { display:inline-flex; align-items:center; justify-content:center; padding:.26rem .48rem; font-size:.6rem; border-radius:999px; }
+@media(max-width:900px){.rate-hero{align-items:stretch;flex-direction:column}.rate-back-button{width:100%}.rate-layout{flex-direction:column}.rate-table-wrapper{overflow-x:auto}}
+/* Center all table headers and values */
+::deep .rate-table th,
+::deep .rate-table td,
+::deep .rates-table th,
+::deep .rates-table td {
+    text-align: center !important;
+    vertical-align: middle !important;
 }
 
-.rate-heading {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 1rem;
+/* Center table header text */
+::deep .rate-table thead th,
+::deep .rates-table thead th {
+    text-align: center !important;
 }
 
-.rate-heading h3 {
-    font-size: 1.65rem;
+/* Center badges and action buttons inside their columns */
+::deep .rate-table td .badge,
+::deep .rates-table td .badge,
+::deep .rate-table td .btn,
+::deep .rates-table td .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 1;
 }
 
-.rate-table-wrapper {
-    border: 1px solid #dee2e6;
-    border-radius: 0.375rem;
-}
-
-.rate-table {
-    min-width: 720px;
-    margin-bottom: 0;
-    font-size: 0.82rem;
-}
-
-.rate-table > :not(caption) > * > * {
-    padding: 0.42rem 0.5rem;
-}
-
-.rate-table thead th {
-    font-size: 0.76rem;
+/* Keep multiple action buttons centered */
+::deep .rate-table td:last-child,
+::deep .rates-table td:last-child {
+    text-align: center !important;
     white-space: nowrap;
-    background-color: #f8f9fa;
 }
-
-.rate-table code {
-    font-size: 0.78rem;
-}
-
-.inactive-rate {
-    color: #6c757d;
-    background-color: #f8f9fa;
-}
-
-.rate-form-card .card-header {
-    padding: 0.55rem 0.75rem;
-    font-weight: 600;
-}
-
-.rate-form-card .card-body {
-    padding: 0.75rem;
-}
-
-.rate-form-card .form-label {
-    margin-bottom: 0.25rem;
-    font-size: 0.8rem;
-    font-weight: 600;
-}
-
-.rate-form-card .validation-message {
-    display: block;
-    margin-top: 0.2rem;
-    color: #dc3545;
-    font-size: 0.72rem;
-}
+.pagination-bar{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.75rem 1rem;border-top:1px solid #e8edf3}.pagination-controls{display:flex;align-items:center;gap:.5rem}.page-size{width:76px!important;min-width:76px}.pagination-controls .btn{display:inline-flex;align-items:center;justify-content:center;min-height:34px;line-height:1}@media(max-width:680px){.pagination-bar{align-items:flex-start;flex-direction:column}.pagination-controls{flex-wrap:wrap}}

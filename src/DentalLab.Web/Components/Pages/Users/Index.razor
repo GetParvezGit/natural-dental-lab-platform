@@ -1,4 +1,4 @@
-﻿@page "/users"
+@page "/users"
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Owner,Admin")]
 
@@ -12,14 +12,18 @@
 
 <PageTitle>User Management</PageTitle>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h3 class="mb-1">User Management</h3>
-        <p class="text-muted mb-0">
-            Create and manage application users according to your role.
-        </p>
-    </div>
-</div>
+<div class="users-page">
+    <section class="users-hero">
+        <div>
+            <span class="eyebrow">Access administration</span>
+            <h1>User Management</h1>
+            <p>Create and manage application users according to your role.</p>
+        </div>
+        <div class="hero-summary">
+            <strong>@users.Count</strong>
+            <span>manageable users</span>
+        </div>
+    </section>
 
 @if (isLoading)
 {
@@ -31,16 +35,45 @@ else if (!string.IsNullOrWhiteSpace(pageError))
 }
 else
 {
-    <div class="row g-4">
+    <section class="users-toolbar">
+        <div class="toolbar-copy">
+            <strong>User directory</strong>
+            <span>Search, filter, and manage application users</span>
+        </div>
+        <div class="toolbar-controls">
+            <input class="form-control form-control-sm search-input"
+                   placeholder="Search user email"
+                   value="@searchText"
+                   @oninput="SearchChanged" />
+            <select class="form-select form-select-sm role-filter"
+                    value="@roleFilter"
+                    @onchange="RoleFilterChanged">
+                <option value="All">All roles</option>
+                @foreach (var role in AvailableRoles)
+                {
+                    <option value="@role">@role</option>
+                }
+            </select>
+            <select class="form-select form-select-sm status-filter"
+                    value="@statusFilter"
+                    @onchange="StatusFilterChanged">
+                <option value="All">All users</option>
+                <option value="Active">Active</option>
+                <option value="Disabled">Disabled</option>
+            </select>
+        </div>
+    </section>
+
+    <div class="row g-4 users-layout">
         <div class="col-xl-8">
-            <div class="card">
+            <div class="card users-table-card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span>Users</span>
-                    <span class="badge bg-secondary">@users.Count</span>
+                    <span class="badge bg-secondary">@FilteredUsers.Count</span>
                 </div>
 
                 <div class="card-body p-0">
-                    @if (users.Count == 0)
+                    @if (FilteredUsers.Count == 0)
                     {
                         <div class="alert alert-info m-3">
                             No manageable users were found.
@@ -49,12 +82,12 @@ else
                     else
                     {
                         <div class="table-responsive">
-                            <table class="table table-sm table-hover align-middle mb-0">
+                            <table class="table table-sm table-hover align-middle mb-0 users-table">
                                 <thead>
                                     <tr>
-                                        <th>Email</th>
+                                        <th>User Email</th>
                                         <th>Role</th>
-                                        <th>Email</th>
+                                        <th>Email Status</th>
                                         <th>Invitation</th>
                                         <th>Password</th>
                                         <th>Account</th>
@@ -62,7 +95,7 @@ else
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var user in users)
+                                    @foreach (var user in PagedUsers)
                                     {
                                         <tr class="@(user.IsLocked ? "text-muted" : string.Empty)">
                                             <td>@user.Email</td>
@@ -108,7 +141,7 @@ else
                                                     @(user.IsLocked ? "Disabled" : "Active")
                                                 </span>
                                             </td>
-                                            <td class="text-end text-nowrap">
+                                            <td class="text-end text-nowrap actions-cell">
                                                 @if (user.MustChangePassword ||
                                                      !string.Equals(user.InvitationEmailStatus, "Sent", StringComparison.OrdinalIgnoreCase))
                                                 {
@@ -132,13 +165,27 @@ else
                                 </tbody>
                             </table>
                         </div>
+
+                        <div class="users-pagination">
+                            <span>Page @PageNumber of @TotalPages <span class="text-muted">(@FilteredUsers.Count total)</span></span>
+                            <div class="pagination-controls">
+                                <label for="usersPageSize">Rows</label>
+                                <select id="usersPageSize" class="form-select form-select-sm page-size" value="@pageSize" @onchange="PageSizeChanged">
+                                    <option value="10">10</option>
+                                    <option value="20">20</option>
+                                    <option value="50">50</option>
+                                </select>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" disabled="@(PageNumber <= 1)" @onclick="PreviousPage">Previous</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" disabled="@(PageNumber >= TotalPages)" @onclick="NextPage">Next</button>
+                            </div>
+                        </div>
                     }
                 </div>
             </div>
         </div>
 
         <div class="col-xl-4">
-            <div class="card">
+            <div class="card create-user-card">
                 <div class="card-header">Create user</div>
                 <div class="card-body">
                     @if (assignableRoles.Count == 0)
@@ -160,7 +207,8 @@ else
                                 <InputText class="form-control"
                                            type="email"
                                            autocomplete="off"
-                                           @bind-Value="request.Email" />
+                                           @bind-Value="request.Email"
+                                           placeholder="Enter user email" />
                                 <ValidationMessage For="() => request.Email" />
                             </div>
 
@@ -192,7 +240,7 @@ else
                             }
 
                             <button type="submit"
-                                    class="btn btn-primary"
+                                    class="btn btn-primary create-user-button"
                                     disabled="@isProcessing">
                                 @(isProcessing ? "Creating..." : "Create user")
                             </button>
@@ -203,6 +251,8 @@ else
         </div>
     </div>
 }
+
+</div>
 
 @code {
     [CascadingParameter]
@@ -218,6 +268,42 @@ else
     private string? successMessage;
     private bool isLoading = true;
     private bool isProcessing;
+    private string searchText = string.Empty;
+    private string roleFilter = "All";
+    private string statusFilter = "All";
+    private int pageNumber = 1;
+    private int pageSize = 10;
+
+    private List<string> AvailableRoles => users
+        .Select(user => user.Role)
+        .Where(role => !string.IsNullOrWhiteSpace(role))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderBy(role => role)
+        .ToList();
+
+    private List<UserListItem> FilteredUsers => users
+        .Where(user =>
+            (string.IsNullOrWhiteSpace(searchText) ||
+             user.Email.Contains(searchText.Trim(), StringComparison.OrdinalIgnoreCase)) &&
+            (roleFilter == "All" ||
+             string.Equals(user.Role, roleFilter, StringComparison.OrdinalIgnoreCase)) &&
+            (statusFilter == "All" ||
+             (statusFilter == "Active" && !user.IsLocked) ||
+             (statusFilter == "Disabled" && user.IsLocked)))
+        .ToList();
+
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(FilteredUsers.Count / (double)pageSize));
+
+    private int PageNumber
+    {
+        get => Math.Min(pageNumber, TotalPages);
+        set => pageNumber = Math.Clamp(value, 1, TotalPages);
+    }
+
+    private List<UserListItem> PagedUsers => FilteredUsers
+        .Skip((PageNumber - 1) * pageSize)
+        .Take(pageSize)
+        .ToList();
 
     protected override async Task OnInitializedAsync()
     {
@@ -357,6 +443,33 @@ else
         {
             isProcessing = false;
         }
+    }
+
+    private void SearchChanged(ChangeEventArgs args)
+    {
+        searchText = args.Value?.ToString() ?? string.Empty;
+        pageNumber = 1;
+    }
+
+    private void RoleFilterChanged(ChangeEventArgs args)
+    {
+        roleFilter = args.Value?.ToString() ?? "All";
+        pageNumber = 1;
+    }
+
+    private void StatusFilterChanged(ChangeEventArgs args)
+    {
+        statusFilter = args.Value?.ToString() ?? "All";
+        pageNumber = 1;
+    }
+
+    private void PreviousPage() => PageNumber--;
+    private void NextPage() => PageNumber++;
+
+    private void PageSizeChanged(ChangeEventArgs args)
+    {
+        if (int.TryParse(args.Value?.ToString(), out var value)) pageSize = value;
+        pageNumber = 1;
     }
 
     private static string RoleBadge(string role)

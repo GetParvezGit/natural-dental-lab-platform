@@ -1,7 +1,135 @@
-﻿@page "/"
+@page "/"
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Natural Dental Lab</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="home-page">
+    <section class="hero-section">
+        <div class="hero-copy">
+            <span class="eyebrow">Precision dental manufacturing</span>
+            <h1>Reliable dental products for doctors and clinics.</h1>
+            <p>
+                Natural Dental Lab manages patient-specific laboratory cases,
+                production units, doctor-specific rates, billing, approvals,
+                and secure operational reporting in one platform.
+            </p>
 
-Welcome to your new app.
+            <div class="hero-actions">
+                <AuthorizeView>
+                    <Authorized>
+                        <a class="primary-action" href="/dashboard">Open dashboard</a>
+                        <a class="secondary-action" href="/cases">View cases</a>
+                    </Authorized>
+                    <NotAuthorized>
+                        <a class="primary-action" href="/Account/Login">Sign in</a>
+                        <a class="secondary-action" href="/about">Learn more</a>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </div>
+
+            <div class="trust-row">
+                <span>Doctor-specific pricing</span>
+                <span>Controlled approvals</span>
+                <span>Auditable billing</span>
+            </div>
+        </div>
+
+        <div class="hero-visual" aria-label="Natural Dental Lab capability summary">
+            <div class="visual-card visual-card-main">
+                <span class="visual-label">Laboratory workflow</span>
+                <strong>Doctor Case → Production → Billing</strong>
+                <div class="workflow-line">
+                    <span>Case</span>
+                    <i></i>
+                    <span>Manufacture</span>
+                    <i></i>
+                    <span>Deliver</span>
+                </div>
+            </div>
+            <div class="visual-card visual-card-top">
+                <strong>Role-based</strong>
+                <span>Owner · Admin · Staff</span>
+            </div>
+            <div class="visual-card visual-card-bottom">
+                <strong>Secure</strong>
+                <span>Identity · Audit · SMTP</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="feature-section" aria-labelledby="platform-features">
+        <div class="section-heading">
+            <span class="eyebrow">One operational platform</span>
+            <h2 id="platform-features">Designed around the dental laboratory workflow</h2>
+            <p>
+                The platform connects commercial pricing, laboratory production,
+                controlled corrections, and management visibility.
+            </p>
+        </div>
+
+        <div class="feature-grid">
+            <article class="feature-card">
+                <span class="feature-icon">01</span>
+                <h3>Doctor Management</h3>
+                <p>Maintain doctor and clinic records with active lifecycle controls.</p>
+            </article>
+            <article class="feature-card">
+                <span class="feature-icon">02</span>
+                <h3>Case Production</h3>
+                <p>Record multi-line patient cases using tooth or arch product scope.</p>
+            </article>
+            <article class="feature-card">
+                <span class="feature-icon">03</span>
+                <h3>Doctor Rate Cards</h3>
+                <p>Apply product pricing for each doctor while preserving historical rates.</p>
+            </article>
+            <article class="feature-card">
+                <span class="feature-icon">04</span>
+                <h3>Approval Controls</h3>
+                <p>Route Staff Edit and Cancellation requests to an assigned Admin.</p>
+            </article>
+            <article class="feature-card">
+                <span class="feature-icon">05</span>
+                <h3>Secure Users</h3>
+                <p>Use role access, temporary passwords, forced changes, and recovery emails.</p>
+            </article>
+            <article class="feature-card">
+                <span class="feature-icon">06</span>
+                <h3>Operational Insight</h3>
+                <p>Track production units, doctor billing, case types, and pending actions.</p>
+            </article>
+        </div>
+    </section>
+
+    <section class="process-section">
+        <div class="process-copy">
+            <span class="eyebrow">Simple and controlled</span>
+            <h2>From doctor request to laboratory billing</h2>
+            <p>
+                Every case keeps a record of the product, selected teeth or arch,
+                units, doctor rate, amount, responsible user, and workflow status.
+            </p>
+        </div>
+
+        <ol class="process-list">
+            <li><span>1</span><div><strong>Receive</strong><small>Doctor sends a patient-specific case.</small></div></li>
+            <li><span>2</span><div><strong>Record</strong><small>Lab user selects product, teeth or arch, and notes.</small></div></li>
+            <li><span>3</span><div><strong>Manufacture</strong><small>Natural Dental Lab produces the required product.</small></div></li>
+            <li><span>4</span><div><strong>Bill and review</strong><small>Production and amounts appear in role-based dashboards.</small></div></li>
+        </ol>
+    </section>
+
+    <section class="cta-section">
+        <div>
+            <span class="eyebrow">Authorized users</span>
+            <h2>Continue to the Natural Dental Lab workspace</h2>
+        </div>
+        <AuthorizeView>
+            <Authorized>
+                <a class="primary-action" href="/dashboard">Open dashboard</a>
+            </Authorized>
+            <NotAuthorized>
+                <a class="primary-action" href="/Account/Login">Sign in securely</a>
+            </NotAuthorized>
+        </AuthorizeView>
+    </section>
+</div>

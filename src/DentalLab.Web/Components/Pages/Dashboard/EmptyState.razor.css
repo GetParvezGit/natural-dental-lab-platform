@@ -1,0 +1,36 @@
+.empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    min-height: 190px;
+    padding: 1.5rem;
+    color: #667085;
+    text-align: center;
+}
+
+.empty-symbol {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    margin-bottom: 0.65rem;
+    color: #6d87ad;
+    font-size: 1.35rem;
+    background: #edf4ff;
+    border-radius: 13px;
+}
+
+.empty-state strong {
+    color: #344054;
+    font-size: 0.86rem;
+    font-weight: 760;
+}
+
+.empty-state span {
+    max-width: 310px;
+    margin-top: 0.26rem;
+    color: #7d899a;
+    font-size: 0.72rem;
+    line-height: 1.5;
+}

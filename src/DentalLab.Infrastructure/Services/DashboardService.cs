@@ -135,12 +135,18 @@ public sealed class DashboardService(
             cancellationToken);
 
         var failedEmails = isOwner
-            ? await db.EmailNotifications
-                .AsNoTracking()
-                .CountAsync(
-                    email => email.Status == "Failed",
-                    cancellationToken)
-            : 0;
+    ? await db.EmailNotifications
+        .AsNoTracking()
+        .Where(email => email.Status == "Failed")
+        .Where(email => !db.EmailNotifications.Any(later =>
+            later.Status == "Sent" &&
+            later.EmailNotificationId > email.EmailNotificationId &&
+            later.RecipientEmail == email.RecipientEmail &&
+            later.NotificationType == email.NotificationType &&
+            later.RelatedEntityType == email.RelatedEntityType &&
+            later.RelatedEntityId == email.RelatedEntityId))
+        .CountAsync(cancellationToken)
+    : 0;
 
         var doctorProduction = activeMonthRows
             .GroupBy(row => new

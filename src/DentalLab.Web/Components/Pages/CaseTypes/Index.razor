@@ -1,22 +1,153 @@
-﻿@page "/case-types"
+@page "/case-types"
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Owner,Admin")]
+
 @using DentalLab.Application.Abstractions
 @using DentalLab.Domain.Entities
 @using Microsoft.AspNetCore.Authorization
+
 @inject ICaseTypeService Service
+
 <PageTitle>Case Types</PageTitle>
-<div class="d-flex justify-content-between mb-3"><h3>Case Types</h3><a class="btn btn-primary" href="/case-types/new">Add case type</a></div>
-<div class="form-check mb-3"><input class="form-check-input" type="checkbox" id="inactive" checked="@showInactive" @onchange="ToggleInactive" /><label class="form-check-label" for="inactive">Show inactive</label></div>
-@if (items is null)
-{
-    <p>Loading...</p>
-}
-else
-{
-    <table class="table table-hover align-middle"><thead><tr><th>Order</th><th>Code</th><th>Name</th><th>Scope</th><th>Status</th><th></th></tr></thead><tbody>@foreach(var x in items){
-        <tr class="@(x.IsActive ? "" : "text-muted")"><td>@x.DisplayOrder</td><td><code>@x.CaseTypeCode</code></td><td>@x.CaseTypeName</td><td>@(x.Scope == 'A' ? "Whole arch" : "Per tooth")</td><td>@(x.IsActive ? "Active" : "Inactive")</td><td class="text-end"><a class="btn btn-sm btn-outline-primary me-1" href="@($"/case-types/{x.CaseTypeId}")">Edit</a><button class="btn btn-sm btn-outline-secondary" @onclick="() => Toggle(x)">@(x.IsActive ? "Deactivate" : "Reactivate")</button></td></tr>
+
+<div class="case-types-page">
+    <section class="case-types-hero">
+        <div>
+            <span class="eyebrow">Production configuration</span>
+            <h1>Case Types</h1>
+            <p>Manage laboratory products, production scope, display order, and availability.</p>
+        </div>
+        <a class="btn add-case-type-button" href="/case-types/new">Add case type</a>
+    </section>
+
+    <section class="case-types-toolbar">
+        <div class="toolbar-copy">
+            <strong>Case type directory</strong>
+            <span>@FilteredItems.Count case type(s)</span>
+        </div>
+        <div class="toolbar-controls">
+            <input class="form-control form-control-sm search-input"
+                   placeholder="Search code or name"
+                   @bind="searchText"
+                   @bind:event="oninput" />
+            <div class="form-check inactive-check">
+                <input class="form-check-input" type="checkbox" id="inactive"
+                       checked="@showInactive" @onchange="ToggleInactive" />
+                <label class="form-check-label" for="inactive">Show inactive</label>
+            </div>
+        </div>
+    </section>
+
+    @if (items is null)
+    {
+        <div class="directory-state">
+            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+            <span>Loading case types...</span>
+        </div>
     }
-</tbody></table>
+    else if (PagedItems.Count == 0)
+    {
+        <div class="alert alert-info">No case types match the current filters.</div>
+    }
+    else
+    {
+        <section class="case-types-table-card">
+            <div class="table-responsive">
+                <table class="table case-types-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th><button type="button" class="sort-header" @onclick="() => SortBy(SortColumn.Order)">Order <span>@SortIndicator(SortColumn.Order)</span></button></th>
+                            <th><button type="button" class="sort-header" @onclick="() => SortBy(SortColumn.Code)">Code <span>@SortIndicator(SortColumn.Code)</span></button></th>
+                            <th><button type="button" class="sort-header" @onclick="() => SortBy(SortColumn.Name)">Name <span>@SortIndicator(SortColumn.Name)</span></button></th>
+                            <th><button type="button" class="sort-header" @onclick="() => SortBy(SortColumn.Scope)">Scope <span>@SortIndicator(SortColumn.Scope)</span></button></th>
+                            <th><button type="button" class="sort-header" @onclick="() => SortBy(SortColumn.Status)">Status <span>@SortIndicator(SortColumn.Status)</span></button></th>
+                            <th class="actions-heading">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var index = 0; index < PagedItems.Count; index++)
+                        {
+                            var item = PagedItems[index];
+                            <tr class="@(index % 2 == 0 ? "row-light" : "row-shaded") @(!item.IsActive ? "inactive-row" : string.Empty)">
+                                <td class="order-cell">@item.DisplayOrder</td>
+                                <td><span class="code-badge">@item.CaseTypeCode</span></td>
+                                <td class="name-cell">@item.CaseTypeName</td>
+                                <td><span class="scope-badge">@(item.Scope == 'A' ? "Whole arch" : "Per tooth")</span></td>
+                                <td><span class="status-badge @(item.IsActive ? "status-active" : "status-inactive")">@(item.IsActive ? "Active" : "Inactive")</span></td>
+                                <td>
+                                    <div class="action-group">
+                                        <a class="btn btn-sm btn-outline-primary" href="@($"/case-types/{item.CaseTypeId}")">Edit</a>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => Toggle(item)">@(item.IsActive ? "Deactivate" : "Reactivate")</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination-bar">
+                <span>Page @PageNumber of @TotalPages <span class="text-muted">(@FilteredItems.Count total)</span></span>
+                <div class="pagination-controls">
+                    <label for="caseTypePageSize">Rows</label>
+                    <select id="caseTypePageSize" class="form-select form-select-sm page-size" value="@pageSize" @onchange="PageSizeChanged">
+                        <option value="10">10</option><option value="20">20</option><option value="50">50</option>
+                    </select>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled="@(PageNumber <= 1)" @onclick="PreviousPage">Previous</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled="@(PageNumber >= TotalPages)" @onclick="NextPage">Next</button>
+                </div>
+            </div>
+        </section>
+    }
+</div>
+
+@code {
+    private List<CaseType>? items;
+    private bool showInactive;
+    private string searchText = string.Empty;
+    private SortColumn sortColumn = SortColumn.Order;
+    private bool sortDescending;
+    private int pageNumber = 1;
+    private int pageSize = 10;
+
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(FilteredItems.Count / (double)pageSize));
+    private int PageNumber { get => Math.Min(pageNumber, TotalPages); set => pageNumber = Math.Clamp(value, 1, TotalPages); }
+
+    private List<CaseType> FilteredItems
+    {
+        get
+        {
+            IEnumerable<CaseType> query = items ?? [];
+            if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                var term = searchText.Trim();
+                query = query.Where(item => item.CaseTypeCode.Contains(term, StringComparison.OrdinalIgnoreCase) || item.CaseTypeName.Contains(term, StringComparison.OrdinalIgnoreCase));
+            }
+            query = (sortColumn, sortDescending) switch
+            {
+                (SortColumn.Order, false) => query.OrderBy(x => x.DisplayOrder),
+                (SortColumn.Order, true) => query.OrderByDescending(x => x.DisplayOrder),
+                (SortColumn.Code, false) => query.OrderBy(x => x.CaseTypeCode),
+                (SortColumn.Code, true) => query.OrderByDescending(x => x.CaseTypeCode),
+                (SortColumn.Name, false) => query.OrderBy(x => x.CaseTypeName),
+                (SortColumn.Name, true) => query.OrderByDescending(x => x.CaseTypeName),
+                (SortColumn.Scope, false) => query.OrderBy(x => x.Scope),
+                (SortColumn.Scope, true) => query.OrderByDescending(x => x.Scope),
+                (SortColumn.Status, false) => query.OrderByDescending(x => x.IsActive),
+                _ => query.OrderBy(x => x.IsActive)
+            };
+            return query.ToList();
+        }
+    }
+
+    private List<CaseType> PagedItems => FilteredItems.Skip((PageNumber - 1) * pageSize).Take(pageSize).ToList();
+    protected override Task OnInitializedAsync() => Load();
+    private async Task Load() => items = await Service.GetAllAsync(showInactive);
+    private async Task ToggleInactive(ChangeEventArgs e) { showInactive = e.Value is bool value && value; pageNumber = 1; await Load(); }
+    private async Task Toggle(CaseType item) { await Service.SetActiveAsync(item.CaseTypeId, !item.IsActive); await Load(); }
+    private void SortBy(SortColumn column) { if (sortColumn == column) sortDescending = !sortDescending; else { sortColumn = column; sortDescending = false; } pageNumber = 1; }
+    private string SortIndicator(SortColumn column) => sortColumn != column ? "↕" : sortDescending ? "↓" : "↑";
+    private void PreviousPage() => PageNumber--;
+    private void NextPage() => PageNumber++;
+    private void PageSizeChanged(ChangeEventArgs e) { if (int.TryParse(e.Value?.ToString(), out var value)) pageSize = value; pageNumber = 1; }
+    private enum SortColumn { Order, Code, Name, Scope, Status }
 }
-@code {private List<CaseType>? items;private bool showInactive;protected override Task OnInitializedAsync()=>Load();private async Task Load()=>items=await Service.GetAllAsync(showInactive);private async Task ToggleInactive(ChangeEventArgs e){showInactive=e.Value is bool v&&v;await Load();}private async Task Toggle(CaseType x){await Service.SetActiveAsync(x.CaseTypeId,!x.IsActive);await Load();}}

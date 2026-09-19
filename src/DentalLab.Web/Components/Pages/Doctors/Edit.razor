@@ -1,73 +1,114 @@
-﻿@page "/doctors/new"
+@page "/doctors/new"
 @page "/doctors/{DocId:int}"
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Owner,Admin")]
+
 @using System.ComponentModel.DataAnnotations
 @using DentalLab.Application.Abstractions
 @using DentalLab.Domain.Entities
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.EntityFrameworkCore
+
 @inject IDoctorService DoctorService
 @inject NavigationManager Nav
 
-<PageTitle>@(IsNew ? "Add doctor" : "Edit doctor")</PageTitle>
+<PageTitle>@(IsNew ? "Add Doctor" : "Edit Doctor")</PageTitle>
 
-<h3>@(IsNew ? "Add doctor" : "Edit doctor")</h3>
-
-@if (model is null)
-{
-    <p>Loading...</p>
-}
-else
-{
-    <EditForm Model="model" OnValidSubmit="Save" FormName="doctorForm">
-        <DataAnnotationsValidator />
-
-        <div class="row g-3" style="max-width:640px">
-
-            <div class="col-12">
-                <label class="form-label">Name</label>
-                <InputText class="form-control" @bind-Value="model.DocName" />
-                <ValidationMessage For="() => model.DocName" />
-            </div>
-
-            <div class="col-md-6">
-                <label class="form-label">Phone</label>
-                <InputText class="form-control" @bind-Value="model.Phone" />
-                <ValidationMessage For="() => model.Phone" />
-            </div>
-
-            <div class="col-md-6">
-                <label class="form-label">Email</label>
-                <InputText class="form-control" @bind-Value="model.Email" />
-                <ValidationMessage For="() => model.Email" />
-            </div>
-
-            @if (!IsNew)
-            {
-                <div class="col-12 form-check ms-2">
-                    <InputCheckbox class="form-check-input" id="active" @bind-Value="model.IsActive" />
-                    <label class="form-check-label" for="active">Active</label>
-                </div>
-            }
-
-            @if (error is not null)
-            {
-                <div class="col-12">
-                    <div class="alert alert-danger">@error</div>
-                </div>
-            }
-
-            <div class="col-12">
-                <button type="submit" class="btn btn-primary" disabled="@saving">
-                    @(saving ? "Saving..." : "Save")
-                </button>
-                <a class="btn btn-link" href="/doctors">Cancel</a>
-            </div>
-
+<div class="doctor-form-page">
+    <section class="doctor-form-hero">
+        <div>
+            <span class="eyebrow">Doctor directory</span>
+            <h1>@(IsNew ? "Add Doctor" : "Edit Doctor")</h1>
+            <p>@(IsNew
+                ? "Create a doctor profile for case entry and rate management."
+                : "Update the doctor's contact details and account availability.")</p>
         </div>
-    </EditForm>
-}
+
+    </section>
+
+    @if (model is null)
+    {
+        <div class="doctor-form-state">
+            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+            <span>Loading doctor details...</span>
+        </div>
+    }
+    else
+    {
+        <EditForm Model="model" OnValidSubmit="Save" FormName="doctorForm">
+            <DataAnnotationsValidator />
+
+            <section class="doctor-form-card">
+                <header class="form-card-header">
+                    <div>
+                        <span class="section-kicker">Profile information</span>
+                        <h2>Doctor details</h2>
+                    </div>
+                    @if (!IsNew)
+                    {
+                        <span class="doctor-id-chip">Doctor #@DocId</span>
+                    }
+                </header>
+
+                <div class="form-card-body">
+                    <div class="form-grid">
+                        <div class="field field-name">
+                            <label class="form-label">Name</label>
+                            <InputText class="form-control"
+                                       @bind-Value="model.DocName"
+                                       placeholder="Enter doctor name" />
+                            <ValidationMessage For="() => model.DocName" />
+                        </div>
+
+                        <div class="field">
+                            <label class="form-label">Phone</label>
+                            <InputText class="form-control"
+                                       @bind-Value="model.Phone"
+                                       placeholder="Enter phone number" />
+                            <ValidationMessage For="() => model.Phone" />
+                        </div>
+
+                        <div class="field">
+                            <label class="form-label">Email</label>
+                            <InputText class="form-control"
+                                       @bind-Value="model.Email"
+                                       placeholder="Enter email address" />
+                            <ValidationMessage For="() => model.Email" />
+                        </div>
+
+                        @if (!IsNew)
+                        {
+                            <div class="status-field">
+                                <div>
+                                    <strong>Account status</strong>
+                                    <span>Active doctors are available for case entry.</span>
+                                </div>
+                                <label class="status-toggle" for="active">
+                                    <InputCheckbox class="form-check-input"
+                                                   id="active"
+                                                   @bind-Value="model.IsActive" />
+                                    <span>Active</span>
+                                </label>
+                            </div>
+                        }
+                    </div>
+
+                    @if (error is not null)
+                    {
+                        <div class="alert alert-danger form-error">@error</div>
+                    }
+                </div>
+
+                <footer class="form-actions">
+                    <a class="btn btn-outline-secondary" href="/doctors">Cancel</a>
+                    <button type="submit" class="btn btn-primary" disabled="@saving">
+                        @(saving ? "Saving..." : IsNew ? "Add Doctor" : "Save Changes")
+                    </button>
+                </footer>
+            </section>
+        </EditForm>
+    }
+</div>
 
 @code {
     [Parameter] public int? DocId { get; set; }

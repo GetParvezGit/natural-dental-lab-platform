@@ -12,17 +12,14 @@
 
 @inject IDashboardService DashboardService
 
-<PageTitle>Dental Lab Dashboard</PageTitle>
+<PageTitle>Natural Dental Lab Dashboard</PageTitle>
 
 <div class="dashboard-shell">
     <section class="dashboard-hero">
         <div>
             <div class="eyebrow">Dental laboratory operations</div>
             <h1>@Greeting</h1>
-            <p>
-                Track cases received from doctors, production units,
-                monthly billing and approval activity.
-            </p>
+            <p>Track cases received from doctors, production units, monthly billing and approval activity.</p>
         </div>
         <div class="hero-mark" aria-hidden="true">
             <span class="tooth-symbol">◆</span>
@@ -40,6 +37,7 @@
                     }
                 </select>
             </div>
+
             <div>
                 <label class="form-label">Year</label>
                 <select class="form-select form-select-sm" @bind="filter.Year">
@@ -49,6 +47,7 @@
                     }
                 </select>
             </div>
+
             @if (!IsStaff)
             {
                 <div class="doctor-filter">
@@ -62,11 +61,13 @@
                     </select>
                 </div>
             }
+
             <div class="filter-actions">
                 <button class="btn btn-sm btn-primary" disabled="@loading" @onclick="LoadAsync">Apply</button>
                 <button class="btn btn-sm btn-outline-secondary" disabled="@loading" @onclick="ResetAsync">Reset</button>
             </div>
         </div>
+
         <div class="period-caption">
             Showing @SelectedPeriod
             @if (IsStaff)
@@ -89,11 +90,23 @@
     }
     else
     {
-        @if (IsOwner && data.Summary.FailedEmails > 0)
+        @if (IsOwner && data.Summary.FailedEmails > 0 && !emailWarningDismissed)
         {
-            <div class="alert email-alert">
-                <strong>@data.Summary.FailedEmails email notification(s) failed.</strong>
-                Review <code>EmailNotifications</code> before relying on email delivery.
+            <div class="email-alert" role="alert">
+                <div class="email-alert-content">
+                    <span class="email-alert-icon" aria-hidden="true">!</span>
+                    <div class="email-alert-copy">
+                        <strong>@data.Summary.FailedEmails email notification(s) failed.</strong>
+                        <span>Review EmailNotifications before relying on email delivery.</span>
+                    </div>
+                </div>
+                <button type="button"
+                        class="email-alert-close"
+                        title="Dismiss"
+                        aria-label="Dismiss email warning"
+                        @onclick="DismissEmailWarning">
+                    ×
+                </button>
             </div>
         }
 
@@ -113,6 +126,12 @@
             }
             <MetricCard Title="Pending requests" Value="@data.Summary.PendingRequests.ToString("N0")" Caption="Waiting for review" Tone="amber" Icon="!" />
             <MetricCard Title="Awaiting action" Value="@data.Summary.ApprovedAwaitingAction.ToString("N0")" Caption="Approved, not completed" Tone="rose" Icon="A" />
+            <MetricCard Title="Completed requests" Value="@data.Summary.CompletedRequests.ToString("N0")" Caption="Workflow actions completed" Tone="green" Icon="✓" />
+            <MetricCard Title="Rejected requests" Value="@data.Summary.RejectedRequests.ToString("N0")" Caption="Requests declined" Tone="violet" Icon="R" />
+            @if (IsOwner)
+            {
+                <MetricCard Title="Failed emails" Value="@data.Summary.FailedEmails.ToString("N0")" Caption="Delivery attempts requiring review" Tone="rose" Icon="E" />
+            }
         </section>
 
         <section class="dashboard-grid dashboard-grid-main">
@@ -167,20 +186,23 @@
                     <div class="mix-layout">
                         <div class="donut" style="@DonutStyle">
                             <div class="donut-center">
-                                <strong>@data.Summary.UnitsThisMonth</strong>
+                                <strong>@ChartUnits</strong>
                                 <span>units</span>
                             </div>
                         </div>
+
                         <div class="mix-list">
-                            @foreach (var item in TopCaseTypes)
+                            @foreach (var chartItem in CaseTypeChartItems)
                             {
                                 <div class="mix-row">
-                                    <span class="mix-dot" style="background:@TypeColor(item.CaseTypeCode)"></span>
+                                    <span class="mix-dot" style="background:@chartItem.Color"></span>
                                     <div class="mix-name">
-                                        <strong>@item.CaseTypeCode</strong>
-                                        <small>@item.CaseCount cases</small>
+                                        <strong>@chartItem.Item.CaseTypeCode</strong>
+                                        <small>@chartItem.Item.CaseCount @(chartItem.Item.CaseCount == 1 ? "case" : "cases")</small>
                                     </div>
-                                    <div class="mix-units">@item.Units units</div>
+                                    <div class="mix-units">
+                                        @chartItem.Item.Units @(chartItem.Item.Units == 1 ? "unit" : "units")
+                                    </div>
                                 </div>
                             }
                         </div>
@@ -208,40 +230,14 @@
                 {
                     <div class="table-responsive">
                         <table class="table dashboard-table align-middle mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Doctor</th>
-                                    <th class="text-end">Cases</th>
-                                    <th class="text-end">Units</th>
-                                    <th class="text-end">Amount</th>
-                                    <th>Share</th>
-                                </tr>
-                            </thead>
+                            <thead><tr><th>Doctor</th><th class="text-end">Cases</th><th class="text-end">Units</th><th class="text-end">Amount</th><th>Share</th></tr></thead>
                             <tbody>
                                 @foreach (var doctor in data.DoctorProduction)
                                 {
-                                    <tr>
-                                        <td><strong>@doctor.DoctorName</strong></td>
-                                        <td class="text-end">@doctor.CaseCount</td>
-                                        <td class="text-end">@doctor.Units</td>
-                                        <td class="text-end amount-cell">@Money(doctor.Amount)</td>
-                                        <td class="share-cell">
-                                            <div class="mini-progress">
-                                                <span style="width:@DoctorShare(doctor.Amount)%"></span>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                    <tr><td><strong>@doctor.DoctorName</strong></td><td class="text-end">@doctor.CaseCount</td><td class="text-end">@doctor.Units</td><td class="text-end amount-cell">@Money(doctor.Amount)</td><td class="share-cell"><div class="mini-progress"><span style="width:@DoctorShare(doctor.Amount)%"></span></div></td></tr>
                                 }
                             </tbody>
-                            <tfoot>
-                                <tr>
-                                    <th>Total</th>
-                                    <th class="text-end">@data.DoctorProduction.Sum(x => x.CaseCount)</th>
-                                    <th class="text-end">@data.DoctorProduction.Sum(x => x.Units)</th>
-                                    <th class="text-end">@Money(data.DoctorProduction.Sum(x => x.Amount))</th>
-                                    <th></th>
-                                </tr>
-                            </tfoot>
+                            <tfoot><tr><th>Total</th><th class="text-end">@data.DoctorProduction.Sum(x => x.CaseCount)</th><th class="text-end">@data.DoctorProduction.Sum(x => x.Units)</th><th class="text-end">@Money(data.DoctorProduction.Sum(x => x.Amount))</th><th></th></tr></tfoot>
                         </table>
                     </div>
                 }
@@ -251,10 +247,7 @@
         <section class="dashboard-grid dashboard-grid-lower">
             <article class="dashboard-card table-card recent-card">
                 <header class="card-heading">
-                    <div>
-                        <span class="section-kicker">Laboratory register</span>
-                        <h2>@(IsStaff ? "My recent cases" : "Recent cases")</h2>
-                    </div>
+                    <div><span class="section-kicker">Laboratory register</span><h2>@(IsStaff ? "My recent cases" : "Recent cases")</h2></div>
                     <a class="header-link" href="/cases">View all</a>
                 </header>
 
@@ -266,43 +259,17 @@
                 {
                     <div class="table-responsive">
                         <table class="table dashboard-table compact-table align-middle mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Case</th>
-                                    <th>Date</th>
-                                    <th>Doctor</th>
-                                    <th>Patient</th>
-                                    <th>Type</th>
-                                    <th class="text-end">Units</th>
-                                    @if (!IsStaff)
-                                    {
-                                        <th class="text-end">Amount</th>
-                                    }
-                                    <th>Status</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
+                            <thead><tr><th>Case</th><th>Date</th><th>Doctor</th><th>Patient</th><th>Type</th><th class="text-end">Units</th>@if (!IsStaff) {
+                                <th class="text-end">Amount</th>
+                            }
+                            <th>Status</th><th></th></tr></thead>
                             <tbody>
                                 @foreach (var item in data.RecentCases)
                                 {
-                                    <tr>
-                                        <td class="case-number">#@item.CaseId</td>
-                                        <td class="text-nowrap">@item.CaseDate.ToString("dd MMM")</td>
-                                        <td>@item.DoctorName</td>
-                                        <td>@Display(item.PatientName)</td>
-                                        <td><span class="type-pill">@item.TypeCodes</span></td>
-                                        <td class="text-end">@item.Units</td>
-                                        @if (!IsStaff)
-                                        {
-                                            <td class="text-end amount-cell">@Money(item.Amount)</td>
-                                        }
-                                        <td>
-                                            <span class="status-pill @(item.IsCancelled ? "status-cancelled" : "status-active")">
-                                                @(item.IsCancelled ? "Cancelled" : "Active")
-                                            </span>
-                                        </td>
-                                        <td><a class="row-link" href="@($"/cases/{item.CaseId}")">View</a></td>
-                                    </tr>
+                                    <tr><td class="case-number">#@item.CaseId</td><td>@item.CaseDate.ToString("dd MMM")</td><td title="@item.DoctorName">@item.DoctorName</td><td title="@Display(item.PatientName)">@Display(item.PatientName)</td><td><span class="type-pill">@item.TypeCodes</span></td><td class="text-end">@item.Units</td>@if (!IsStaff) {
+                                        <td class="text-end amount-cell">@Money(item.Amount)</td>
+                                    }
+                                    <td><span class="status-pill @(item.IsCancelled ? "status-cancelled" : "status-active")">@(item.IsCancelled ? "Cancelled" : "Active")</span></td><td><a class="row-link" href="@($"/cases/{item.CaseId}")">View</a></td></tr>
                                 }
                             </tbody>
                         </table>
@@ -311,19 +278,8 @@
             </article>
 
             <article class="dashboard-card approvals-card">
-                <header class="card-heading">
-                    <div>
-                        <span class="section-kicker">Workflow</span>
-                        <h2>@ApprovalHeading</h2>
-                    </div>
-                    <a class="header-link" href="/approval-requests">View all</a>
-                </header>
-
-                <div class="approval-stat-row">
-                    <div><strong>@data.Summary.PendingRequests</strong><span>Pending</span></div>
-                    <div><strong>@data.Summary.ApprovedAwaitingAction</strong><span>Awaiting</span></div>
-                    <div><strong>@data.Summary.CompletedRequests</strong><span>Completed</span></div>
-                </div>
+                <header class="card-heading"><div><span class="section-kicker">Workflow</span><h2>@ApprovalHeading</h2></div><a class="header-link" href="/approval-requests">View all</a></header>
+                <div class="approval-stat-row"><div><strong>@data.Summary.PendingRequests</strong><span>Pending</span></div><div><strong>@data.Summary.ApprovedAwaitingAction</strong><span>Awaiting</span></div><div><strong>@data.Summary.CompletedRequests</strong><span>Completed</span></div></div>
 
                 @if (data.ApprovalRequests.Count == 0)
                 {
@@ -334,17 +290,7 @@
                     <div class="approval-list">
                         @foreach (var request in data.ApprovalRequests.Take(6))
                         {
-                            <a class="approval-item" href="@($"/approval-requests/{request.RequestId}")">
-                                <div class="approval-icon @RequestTone(request.RequestType)">
-                                    @(request.RequestType == "Cancel" ? "×" : "✎")
-                                </div>
-                                <div class="approval-copy">
-                                    <strong>@request.RequestType · Case #@request.CaseId</strong>
-                                    <span>@(IsStaff ? request.AssignedAdminEmail : request.RequestedByEmail)</span>
-                                    <small>@request.RequestedOn.ToLocalTime().ToString("dd MMM, HH:mm")</small>
-                                </div>
-                                <span class="request-status @RequestStatusClass(request.Status)">@request.Status</span>
-                            </a>
+                            <a class="approval-item" href="@($"/approval-requests/{request.RequestId}")"><div class="approval-icon @RequestTone(request.RequestType)">@(request.RequestType == "Cancel" ? "×" : "✎")</div><div class="approval-copy"><strong>@request.RequestType · Case #@request.CaseId</strong><span>@(IsStaff ? request.AssignedAdminEmail : request.RequestedByEmail)</span><small>@request.RequestedOn.ToLocalTime().ToString("dd MMM, HH:mm")</small></div><span class="request-status @RequestStatusClass(request.Status)">@request.Status</span></a>
                         }
                     </div>
                 }
@@ -363,64 +309,47 @@
     private string currentUserEmail = string.Empty;
     private string currentRole = string.Empty;
     private bool loading = true;
+    private bool emailWarningDismissed;
     private string? error;
+
+    private static readonly string[] CaseTypeChartColors =
+    [
+        "#2F6FED", // Blue
+        "#00A6A6", // Teal
+        "#8B5CF6", // Violet
+        "#F59E0B", // Amber
+        "#EF476F", // Rose
+        "#10B981"  // Green
+    ];
 
     private bool IsOwner => currentRole == ApplicationRoles.Owner;
     private bool IsAdmin => currentRole == ApplicationRoles.Admin;
     private bool IsStaff => currentRole == ApplicationRoles.Staff;
-
-    private string Greeting => IsStaff
-        ? "Your production workspace"
-        : IsAdmin
-            ? "Laboratory operations"
-            : "Business overview";
-
-    private string ApprovalHeading => IsStaff
-        ? "My requests"
-        : IsAdmin
-            ? "Assigned requests"
-            : "Approval activity";
-
-    private string SelectedPeriod =>
-        new DateTime(filter.Year, filter.Month, 1)
-            .ToString("MMMM yyyy");
-
-    private IEnumerable<(int Value, string Text)> Months =>
-        Enumerable.Range(1, 12)
-            .Select(month =>
-                (month,
-                 CultureInfo.CurrentCulture.DateTimeFormat
-                     .GetMonthName(month)));
-
-    private IEnumerable<int> Years =>
-        Enumerable.Range(DateTime.Today.Year - 4, 6)
-            .Reverse();
-
-    private IEnumerable<DailyProductionSummary> ChartPoints =>
-        data.DailyProduction.Count <= 16
-            ? data.DailyProduction
-            : data.DailyProduction.TakeLast(16);
-
-    private IEnumerable<CaseTypeProductionSummary> TopCaseTypes =>
-        data.CaseTypeProduction.Take(6);
-
-    private int MaxChartUnits =>
-        Math.Max(1, ChartPoints.Select(point => point.Units).DefaultIfEmpty(1).Max());
+    private string Greeting => IsStaff ? "Your production workspace" : IsAdmin ? "Laboratory operations" : "Business overview";
+    private string ApprovalHeading => IsStaff ? "My requests" : IsAdmin ? "Assigned requests" : "Approval activity";
+    private string SelectedPeriod => new DateTime(filter.Year, filter.Month, 1).ToString("MMMM yyyy");
+    private IEnumerable<(int Value, string Text)> Months => Enumerable.Range(1, 12).Select(month => (month, CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(month)));
+    private IEnumerable<int> Years => Enumerable.Range(DateTime.Today.Year - 4, 6).Reverse();
+    private IEnumerable<DailyProductionSummary> ChartPoints => data.DailyProduction.Count <= 16 ? data.DailyProduction : data.DailyProduction.TakeLast(16);
+    private IEnumerable<CaseTypeProductionSummary> TopCaseTypes => data.CaseTypeProduction.Take(6);
+    private IReadOnlyList<CaseTypeChartItem> CaseTypeChartItems => TopCaseTypes.Select((item, index) => new CaseTypeChartItem(item, CaseTypeChartColors[index % CaseTypeChartColors.Length])).ToList();
+    private int ChartUnits => CaseTypeChartItems.Sum(item => item.Item.Units);
+    private int MaxChartUnits => Math.Max(1, ChartPoints.Select(point => point.Units).DefaultIfEmpty(1).Max());
 
     private string DonutStyle
     {
         get
         {
-            var items = TopCaseTypes.ToList();
-            var total = items.Sum(item => item.Units);
+            var items = CaseTypeChartItems;
+            var total = items.Sum(item => item.Item.Units);
             if (total <= 0) return "background:#e7edf5";
 
             var stops = new List<string>();
             decimal start = 0;
-            foreach (var item in items)
+            foreach (var chartItem in items)
             {
-                var end = start + (decimal)item.Units / total * 100;
-                stops.Add($"{TypeColor(item.CaseTypeCode)} {start:0.##}% {end:0.##}%");
+                var end = start + (decimal)chartItem.Item.Units / total * 100;
+                stops.Add($"{chartItem.Color} {start:0.##}% {end:0.##}%");
                 start = end;
             }
             return $"background:conic-gradient({string.Join(",", stops)})";
@@ -431,15 +360,8 @@
     {
         var auth = await AuthenticationStateTask;
         currentUserId = auth.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
-        currentUserEmail = auth.User.FindFirstValue(ClaimTypes.Email)
-            ?? auth.User.Identity?.Name
-            ?? string.Empty;
-        currentRole = auth.User.IsInRole(ApplicationRoles.Owner)
-            ? ApplicationRoles.Owner
-            : auth.User.IsInRole(ApplicationRoles.Admin)
-                ? ApplicationRoles.Admin
-                : ApplicationRoles.Staff;
-
+        currentUserEmail = auth.User.FindFirstValue(ClaimTypes.Email) ?? auth.User.Identity?.Name ?? string.Empty;
+        currentRole = auth.User.IsInRole(ApplicationRoles.Owner) ? ApplicationRoles.Owner : auth.User.IsInRole(ApplicationRoles.Admin) ? ApplicationRoles.Admin : ApplicationRoles.Staff;
         await LoadAsync();
     }
 
@@ -447,67 +369,19 @@
     {
         loading = true;
         error = null;
-        try
-        {
-            data = await DashboardService.GetDashboardAsync(
-                filter,
-                currentUserId,
-                currentUserEmail,
-                currentRole);
-        }
-        catch (Exception exception)
-        {
-            error = exception.Message;
-        }
-        finally
-        {
-            loading = false;
-        }
+        try { data = await DashboardService.GetDashboardAsync(filter, currentUserId, currentUserEmail, currentRole); }
+        catch (Exception exception) { error = exception.Message; }
+        finally { loading = false; }
     }
 
-    private async Task ResetAsync()
-    {
-        filter = new DashboardFilter();
-        await LoadAsync();
-    }
+    private async Task ResetAsync() { filter = new DashboardFilter(); await LoadAsync(); }
+    private void DismissEmailWarning() => emailWarningDismissed = true;
+    private double BarHeight(int units) => Math.Max(7, units * 100d / MaxChartUnits);
+    private double DoctorShare(decimal amount) { var max = data.DoctorProduction.Select(item => item.Amount).DefaultIfEmpty(1).Max(); return max <= 0 ? 0 : (double)(amount / max * 100); }
+    private static string Money(decimal value) => string.Format(CultureInfo.GetCultureInfo("en-IN"), "{0:C0}", value);
+    private static string Display(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+    private static string RequestTone(string type) => type == "Cancel" ? "cancel-tone" : "edit-tone";
+    private static string RequestStatusClass(string status) => status switch { "Pending" => "request-pending", "Approved" => "request-approved", "Completed" => "request-completed", "Rejected" => "request-rejected", _ => "request-neutral" };
 
-    private double BarHeight(int units) =>
-        Math.Max(7, units * 100d / MaxChartUnits);
-
-    private double DoctorShare(decimal amount)
-    {
-        var max = data.DoctorProduction
-            .Select(item => item.Amount)
-            .DefaultIfEmpty(1)
-            .Max();
-        return max <= 0 ? 0 : (double)(amount / max * 100);
-    }
-
-    private static string Money(decimal value) =>
-        string.Format(
-            CultureInfo.GetCultureInfo("en-IN"),
-            "{0:C0}",
-            value);
-
-    private static string Display(string? value) =>
-        string.IsNullOrWhiteSpace(value) ? "-" : value;
-
-    private static string TypeColor(string code)
-    {
-        var palette = new[] { "#2f6fed", "#00a6a6", "#8b5cf6", "#f59e0b", "#ef476f", "#10b981", "#64748b" };
-        var hash = code.Aggregate(17, (current, character) => current * 31 + character);
-        return palette[Math.Abs(hash) % palette.Length];
-    }
-
-    private static string RequestTone(string type) =>
-        type == "Cancel" ? "cancel-tone" : "edit-tone";
-
-    private static string RequestStatusClass(string status) => status switch
-    {
-        "Pending" => "request-pending",
-        "Approved" => "request-approved",
-        "Completed" => "request-completed",
-        "Rejected" => "request-rejected",
-        _ => "request-neutral"
-    };
+    private sealed record CaseTypeChartItem(CaseTypeProductionSummary Item, string Color);
 }

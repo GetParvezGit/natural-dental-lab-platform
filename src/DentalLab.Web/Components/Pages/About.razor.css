@@ -1,0 +1,81 @@
+.info-page {
+    max-width: 1180px;
+    margin: 0 auto;
+}
+
+.info-hero {
+    padding: clamp(2rem, 6vw, 5rem);
+    color: #ffffff;
+    background:
+        radial-gradient(circle at 88% 10%, rgba(255,255,255,0.16), transparent 18rem),
+        linear-gradient(135deg, #17324d, #2f6fed 65%, #0a9b8e);
+    border-radius: 24px;
+    box-shadow: 0 20px 55px rgba(26, 55, 94, 0.16);
+}
+
+.eyebrow {
+    color: #a8e6df;
+    font-size: 0.72rem;
+    font-weight: 850;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.info-hero h1 {
+    max-width: 850px;
+    margin: 0.7rem 0 1rem;
+    font-size: clamp(2.1rem, 5vw, 4.3rem);
+    font-weight: 820;
+    line-height: 1.05;
+    letter-spacing: -0.04em;
+}
+
+.info-hero p {
+    max-width: 820px;
+    margin: 0;
+    color: #dce7f5;
+    font-size: 1.02rem;
+    line-height: 1.75;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.info-grid article {
+    min-height: 220px;
+    padding: 1.5rem;
+    background: #ffffff;
+    border: 1px solid #e1e7ef;
+    border-radius: 17px;
+    box-shadow: 0 10px 30px rgba(22, 42, 72, 0.05);
+}
+
+.info-grid article > span {
+    color: #2f6fed;
+    font-size: 0.72rem;
+    font-weight: 850;
+}
+
+.info-grid h2 {
+    margin: 1rem 0 0.55rem;
+    color: #17324d;
+    font-size: 1.1rem;
+    font-weight: 760;
+}
+
+.info-grid p {
+    margin: 0;
+    color: #667085;
+    font-size: 0.86rem;
+    line-height: 1.7;
+}
+
+@media (max-width: 760px) {
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+}

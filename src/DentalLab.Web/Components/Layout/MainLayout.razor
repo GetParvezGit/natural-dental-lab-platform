@@ -1,23 +1,26 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 
-<div class="page">
-    <div class="sidebar">
+<div class="app-shell">
+    <header class="app-header">
         <NavMenu />
-    </div>
+    </header>
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
-
-        <article class="content px-4">
+    <main class="app-main">
+        <div class="app-content">
             @Body
-        </article>
+        </div>
     </main>
+
+    <footer class="app-footer">
+        <div class="app-footer-inner">
+            <span>© @DateTime.Now.Year Natural Dental Lab</span>
+            <span>Laboratory Operations Platform</span>
+        </div>
+    </footer>
 </div>
 
 <div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
+    An unexpected error occurred.
     <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
+    <button type="button" class="dismiss" aria-label="Dismiss">×</button>
 </div>
