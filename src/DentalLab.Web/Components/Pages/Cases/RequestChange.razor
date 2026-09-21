@@ -16,55 +16,108 @@
 
 <PageTitle>Request Case Change</PageTitle>
 
-@if (loading)
-{
-    <p>Loading...</p>
-}
-else if (caseDetails is null)
-{
-    <div class="alert alert-warning">Case not found or already cancelled.</div>
-}
-else
-{
-    <h3>@(model.RequestType == CaseApprovalRequestTypes.Edit ? "Request Case Edit" : "Request Case Cancellation")</h3>
-    <p class="text-muted">Case #@CaseId · @caseDetails.DoctorName · @caseDetails.PatientName</p>
-
-    <EditForm Model="model" OnValidSubmit="SubmitAsync" FormName="caseApprovalRequestForm">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
-        <div class="card" style="max-width:760px">
-            <div class="card-body">
-                <div class="mb-3">
-                    <label class="form-label">Assign to Admin</label>
-                    <InputSelect class="form-select" @bind-Value="model.AssignedAdminUserId">
-                        <option value="">-- select admin --</option>
-                        @foreach (var admin in admins)
-                        {
-                            <option value="@admin.UserId">@admin.Email</option>
-                        }
-                    </InputSelect>
-                    <ValidationMessage For="() => model.AssignedAdminUserId" />
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Reason</label>
-                    <InputTextArea class="form-control" rows="4" @bind-Value="model.Reason" />
-                    <ValidationMessage For="() => model.Reason" />
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Additional details</label>
-                    <InputTextArea class="form-control" rows="3" @bind-Value="model.AdditionalDetails" />
-                    <ValidationMessage For="() => model.AdditionalDetails" />
-                </div>
-                @if (!string.IsNullOrWhiteSpace(error))
-                {
-                    <div class="alert alert-danger">@error</div>
-                }
-                <button class="btn btn-primary" disabled="@saving">@(saving ? "Submitting..." : "Submit request")</button>
-                <a class="btn btn-link" href="@($"/cases/{CaseId}")">Back</a>
-            </div>
+<div class="request-change-page">
+    @if (loading)
+    {
+        <div class="request-state">
+            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+            <span>Loading case information...</span>
         </div>
-    </EditForm>
-}
+    }
+    else if (caseDetails is null)
+    {
+        <div class="alert alert-warning">Case not found or already cancelled.</div>
+    }
+    else
+    {
+        <section class="request-change-hero">
+            <div>
+                <span class="eyebrow">Approval workflow</span>
+                <h1>@(model.RequestType == CaseApprovalRequestTypes.Edit ? "Request Case Edit" : "Request Case Cancellation")</h1>
+                <p>Submit a change request for administrator review and approval.</p>
+            </div>
+            <a class="btn hero-back-button" href="@($"/cases/{CaseId}")">Back</a>
+        </section>
+
+        <section class="case-summary-card">
+            <div class="summary-item">
+                <span>Case</span>
+                <strong>#@CaseId</strong>
+            </div>
+            <div class="summary-item">
+                <span>Doctor</span>
+                <strong>@caseDetails.DoctorName</strong>
+            </div>
+            <div class="summary-item">
+                <span>Patient</span>
+                <strong>@DisplayValue(caseDetails.PatientName)</strong>
+            </div>
+            <div class="summary-item">
+                <span>Request Type</span>
+                <strong>@model.RequestType</strong>
+            </div>
+        </section>
+
+        <EditForm Model="model" OnValidSubmit="SubmitAsync" FormName="caseApprovalRequestForm">
+            <DataAnnotationsValidator />
+
+            <section class="request-form-card">
+                <header class="form-card-header">
+                    <div>
+                        <span class="section-kicker">Request information</span>
+                        <h2>Change request details</h2>
+                    </div>
+                    <span class="case-chip">Case #@CaseId</span>
+                </header>
+
+                <div class="form-card-body">
+                    <ValidationSummary />
+
+                    <div class="form-grid">
+                        <div class="form-field admin-field">
+                            <label class="form-label">Assign to Admin</label>
+                            <InputSelect class="form-select" @bind-Value="model.AssignedAdminUserId">
+                                <option value="">Select an administrator</option>
+                                @foreach (var admin in admins)
+                                {
+                                    <option value="@admin.UserId">@admin.Email</option>
+                                }
+                            </InputSelect>
+                            <small>The selected administrator will review this request.</small>
+                            <ValidationMessage For="() => model.AssignedAdminUserId" />
+                        </div>
+
+                        <div class="form-field">
+                            <label class="form-label">Reason</label>
+                            <InputTextArea class="form-control" rows="4" @bind-Value="model.Reason" placeholder="Explain why this case needs to be changed" />
+                            <small>Provide a clear business reason for the request.</small>
+                            <ValidationMessage For="() => model.Reason" />
+                        </div>
+
+                        <div class="form-field">
+                            <label class="form-label">Additional details</label>
+                            <InputTextArea class="form-control" rows="3" @bind-Value="model.AdditionalDetails" placeholder="Add any supporting information, if required" />
+                            <small>Optional supporting information for the reviewer.</small>
+                            <ValidationMessage For="() => model.AdditionalDetails" />
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(error))
+                    {
+                        <div class="alert alert-danger form-error">@error</div>
+                    }
+                </div>
+
+                <footer class="form-actions">
+                    <a class="btn btn-outline-secondary" href="@($"/cases/{CaseId}")">Cancel</a>
+                    <button type="submit" class="btn btn-primary" disabled="@saving">
+                        @(saving ? "Submitting..." : "Submit Request")
+                    </button>
+                </footer>
+            </section>
+        </EditForm>
+    }
+</div>
 
 @code {
     [Parameter] public int CaseId { get; set; }
@@ -92,6 +145,9 @@ else
         model = new CreateCaseApprovalRequest { CaseId = CaseId, RequestType = normalized };
         loading = false;
     }
+
+    private static string DisplayValue(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? "-" : value;
 
     private async Task SubmitAsync()
     {

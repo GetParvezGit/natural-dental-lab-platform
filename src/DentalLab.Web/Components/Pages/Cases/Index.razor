@@ -8,6 +8,7 @@
 @using DentalLab.Domain.Entities
 @using DentalLab.Web.Components.Shared
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 
 @inject ICaseService CaseService
 @inject IDoctorService DoctorService
@@ -22,7 +23,7 @@
         </div>
 
         <a class="btn btn-primary btn-sm new-case-button" href="/cases/new">
-            New case
+            New Case
         </a>
     </div>
 
@@ -104,10 +105,16 @@
                         <th>Patient</th>
                         <th>Teeth / Arch</th>
                         <th>Type</th>
-                        <th class="text-end">Unit Rate</th>
+                        @if (canViewPricing)
+                        {
+                            <th class="text-end">Unit Rate</th>
+                        }
                         <th class="text-end">Units</th>
-                        <th class="text-end">Unit Amount</th>
-                        <th class="text-end"><button type="button" class="sort-header sort-header-end" @onclick="() => SortBy(CaseSortColumn.TotalAmount)">Total Amount <span class="sort-indicator">@SortIndicator(CaseSortColumn.TotalAmount)</span></button></th>
+                        @if (canViewPricing)
+                        {
+                            <th class="text-end">Unit Amount</th>
+                            <th class="text-end"><button type="button" class="sort-header sort-header-end" @onclick="() => SortBy(CaseSortColumn.TotalAmount)">Total Amount <span class="sort-indicator">@SortIndicator(CaseSortColumn.TotalAmount)</span></button></th>
+                        }
                         <th>Status</th>
                         <th class="text-center">View</th>
                     </tr>
@@ -150,13 +157,22 @@
                                     <CompactToothGrid Scope="@line.Scope" Arch="@line.Arch" UR="@line.UR" UL="@line.UL" LR="@line.LR" LL="@line.LL" />
                                 </td>
                                 <td><span class="@Badge(line.CaseTypeCode)">@line.CaseTypeCode</span></td>
-                                <td class="text-end text-nowrap">@line.UnitRate.ToString("N2")</td>
+                                @if (canViewPricing)
+                                {
+                                    <td class="text-end text-nowrap">@line.UnitRate.ToString("N2")</td>
+                                }
                                 <td class="text-end">@line.Units</td>
-                                <td class="text-end text-nowrap">@line.Amount.ToString("N2")</td>
+                                @if (canViewPricing)
+                                {
+                                    <td class="text-end text-nowrap">@line.Amount.ToString("N2")</td>
+                                }
 
                                 @if (index == 0)
                                 {
-                                    <td rowspan="@rowSpan" class="text-end text-nowrap total-amount-cell">@item.TotalAmount.ToString("N2")</td>
+                                    @if (canViewPricing)
+                                    {
+                                        <td rowspan="@rowSpan" class="text-end text-nowrap total-amount-cell">@item.TotalAmount.ToString("N2")</td>
+                                    }
                                     <td rowspan="@rowSpan" class="status-cell">
                                         @if (item.IsCancelled)
                                         {
@@ -199,8 +215,12 @@
 </div>
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationStateTask { get; set; } = default!;
+
     private readonly CaseFilter filter = new();
     private List<Doctor> doctors = [];
+    private bool canViewPricing;
     private PagedResult<CaseListItem>? result;
     private bool loading;
     private int? hoveredCaseId;
@@ -210,6 +230,10 @@
 
     protected override async Task OnInitializedAsync()
     {
+        var authenticationState = await AuthenticationStateTask;
+        canViewPricing = authenticationState.User.IsInRole("Owner") ||
+                         authenticationState.User.IsInRole("Admin");
+
         filter.Status = "All";
         doctors = await DoctorService.GetAllAsync();
         await LoadAsync();

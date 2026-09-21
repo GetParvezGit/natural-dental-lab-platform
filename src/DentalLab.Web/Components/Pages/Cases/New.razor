@@ -1,4 +1,4 @@
-﻿@page "/cases/new"
+@page "/cases/new"
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Owner,Admin,Staff")]
 
@@ -105,18 +105,25 @@
                                     @foreach (var rate in doctorRates)
                                     {
                                         <option value="@rate.CaseTypeId">
-                                            @rate.CaseTypeCode - @rate.CaseTypeName (@rate.Cost.ToString("N2"))
+                                            @rate.CaseTypeCode - @rate.CaseTypeName
+                                            @if (canViewPricing)
+                                            {
+                                                <text> (@rate.Cost.ToString("N2"))</text>
+                                            }
                                         </option>
                                     }
                                 </select>
                             </div>
 
-                            <div class="col-md-4">
-                                <label class="form-label">Unit Rate</label>
-                                <div class="form-control bg-light">
-                                    @(selectedRate is null ? "-" : selectedRate.Cost.ToString("N2"))
+                            @if (canViewPricing)
+                            {
+                                <div class="col-md-4">
+                                    <label class="form-label">Unit Rate</label>
+                                    <div class="form-control bg-light">
+                                        @(selectedRate is null ? "-" : selectedRate.Cost.ToString("N2"))
+                                    </div>
                                 </div>
-                            </div>
+                            }
                         </div>
 
                         @if (selectedRate is not null)
@@ -237,9 +244,10 @@
                             <div class="d-flex justify-content-between align-items-center mt-4">
                                 <div>
                                     <strong>Current units:</strong> @CurrentUnits
-                                    <span class="ms-3">
-                                        <strong>Amount:</strong> @CurrentAmount.ToString("N2")
-                                    </span>
+                                    @if (canViewPricing)
+                                    {
+                                        <span class="ms-3"><strong>Amount:</strong> @CurrentAmount.ToString("N2")</span>
+                                    }
                                 </div>
 
                                 <button type="button"
@@ -290,7 +298,10 @@
 
                                 <div class="d-flex justify-content-between mt-2">
                                     <span>@line.Units unit(s)</span>
-                                    <strong>@line.Amount.ToString("N2")</strong>
+                                    @if (canViewPricing)
+                                    {
+                                        <strong>@line.Amount.ToString("N2")</strong>
+                                    }
                                 </div>
                             </div>
                         }
@@ -300,10 +311,13 @@
                                 <span>Total units</span>
                                 <strong>@model.Lines.Sum(x => x.Units)</strong>
                             </div>
-                            <div class="d-flex justify-content-between fs-5">
-                                <span>Total amount</span>
-                                <strong>@model.Lines.Sum(x => x.Amount).ToString("N2")</strong>
-                            </div>
+                            @if (canViewPricing)
+                            {
+                                <div class="d-flex justify-content-between fs-5">
+                                    <span>Total amount</span>
+                                    <strong>@model.Lines.Sum(x => x.Amount).ToString("N2")</strong>
+                                </div>
+                            }
                         </div>
                     }
                 </div>
@@ -363,6 +377,7 @@
     private char? selectedArch;
     private bool ratesLoading;
     private bool saving;
+    private bool canViewPricing;
     private string? lineError;
     private string? saveError;
 
@@ -378,6 +393,10 @@
 
     protected override async Task OnInitializedAsync()
     {
+        var authenticationState = await AuthenticationStateTask;
+        canViewPricing = authenticationState.User.IsInRole("Owner") ||
+                         authenticationState.User.IsInRole("Admin");
+
         doctors = await DoctorService.GetAllAsync();
     }
 

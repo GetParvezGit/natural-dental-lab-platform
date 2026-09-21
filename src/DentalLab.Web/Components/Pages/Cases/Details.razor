@@ -5,6 +5,7 @@
 @using DentalLab.Application.Models.Cases
 @using DentalLab.Web.Components.Shared
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @inject ICaseService CaseService
 <PageTitle>Case @CaseId</PageTitle>
 @if (item is null)
@@ -46,11 +47,11 @@ else
         <div class="case-lines-heading">Case Details</div>
         <div class="table-responsive">
             <table class="table table-bordered case-lines-table mb-0">
-                <thead><tr><th>#</th><th>Teeth</th><th>Type</th><th>Rate</th><th>Units</th><th>Amount</th></tr></thead>
+                <thead><tr><th>#</th><th>Teeth</th><th>Type</th>@if (canViewPricing) { <th>Rate</th> }<th>Units</th>@if (canViewPricing) { <th>Amount</th> }</tr></thead>
                 <tbody>
                     @foreach (var l in item.Lines)
                     {
-                        <tr><td>@l.LineNumber</td><td><CompactToothGrid Scope="@l.Scope" Arch="@l.Arch" UR="@l.UR" UL="@l.UL" LR="@l.LR" LL="@l.LL" /></td><td>@l.CaseTypeCode - @l.CaseTypeName</td><td>@l.UnitRate.ToString("N2")</td><td>@l.Units</td><td>@l.Amount.ToString("N2")</td></tr>
+                        <tr><td>@l.LineNumber</td><td><CompactToothGrid Scope="@l.Scope" Arch="@l.Arch" UR="@l.UR" UL="@l.UL" LR="@l.LR" LL="@l.LL" /></td><td>@l.CaseTypeCode - @l.CaseTypeName</td>@if (canViewPricing) { <td>@l.UnitRate.ToString("N2")</td> }<td>@l.Units</td>@if (canViewPricing) { <td>@l.Amount.ToString("N2")</td> }</tr>
                     }
                 </tbody>
             </table>
@@ -59,6 +60,13 @@ else
 }
 @code {
     [Parameter] public int CaseId { get; set; }
+    [CascadingParameter] private Task<AuthenticationState> AuthenticationStateTask { get; set; } = default!;
     private CaseDetails? item;
-    protected override async Task OnParametersSetAsync() => item = await CaseService.GetByIdAsync(CaseId);
+    private bool canViewPricing;
+    protected override async Task OnParametersSetAsync()
+    {
+        var authenticationState = await AuthenticationStateTask;
+        canViewPricing = authenticationState.User.IsInRole("Owner") || authenticationState.User.IsInRole("Admin");
+        item = await CaseService.GetByIdAsync(CaseId);
+    }
 }
