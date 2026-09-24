@@ -514,7 +514,14 @@
         line-height: 1;
         white-space: nowrap;
     }
-
+.eyebrow {
+    display: block;
+    color: #cfe3ff;
+    font-size: .67rem;
+    font-weight: 850;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
 @media (max-width: 1200px) {
     .cases-table-container {
         overflow-x: auto;
