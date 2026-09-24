@@ -60,7 +60,10 @@ public sealed class UserManagementService(UserManager<ApplicationUser> userManag
     }
     private async Task SendInvitationAsync(ApplicationUser user,string password,CancellationToken ct)
     {
-        var body=$"<h2>Dental Lab account</h2><p>Your account has been created.</p><p>Email: <strong>{user.Email}</strong></p><p>Temporary password: <strong>{System.Net.WebUtility.HtmlEncode(password)}</strong></p><p>Sign in and change this password immediately.</p>";
+        var body=$"<h2>Dental Lab account</h2><p>Your account has been created.</p><p>Email: <strong>{user.Email}</strong></p>" +
+            $"<p>Temporary password: <strong>{System.Net.WebUtility.HtmlEncode(password)}</strong></p>" +
+            $"<p><a href = \"https://naturaldentallab.azurewebsites.net\" target = \"_blank\">Click here</a> to Sign in and change this password immediately.</p>";
+
         var sent=await email.SendAsync(user.Email!,"Your Dental Lab account",body,"UserInvitation","User",user.Id,ct);
         user.InvitationEmailStatus=sent?"Sent":"Failed";user.InvitationEmailSentOn=sent?DateTime.UtcNow:null;user.InvitationEmailError=sent?null:"SMTP delivery failed. See EmailNotifications.";await userManager.UpdateAsync(user);
     }
